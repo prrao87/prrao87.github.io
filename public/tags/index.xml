@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on The Data Quarry</title>
+    <link>https://prrao87.github.io/tags/</link>
+    <description>Recent content in Tags on The Data Quarry</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 29 Apr 2023 11:29:09 -0400</lastBuildDate><atom:link href="https://prrao87.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>data-engineering</title>
+      <link>https://prrao87.github.io/tags/data-engineering/</link>
+      <pubDate>Sat, 29 Apr 2023 11:29:09 -0400</pubDate>
+      
+      <guid>https://prrao87.github.io/tags/data-engineering/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>general</title>
+      <link>https://prrao87.github.io/tags/general/</link>
+      <pubDate>Sat, 29 Apr 2023 11:29:09 -0400</pubDate>
+      
+      <guid>https://prrao87.github.io/tags/general/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

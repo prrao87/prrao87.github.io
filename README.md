@@ -1,2 +1,3 @@
-# prrao87.github.io
-Page for my upcoming blog
+# Blog
+
+Page for my technical and personal blog, powered by [Hugo](https://gohugo.io/).

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>data-engineering on The Data Quarry</title>
+    <link>https://prrao87.github.io/tags/data-engineering/</link>
+    <description>Recent content in data-engineering on The Data Quarry</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 29 Apr 2023 11:29:09 -0400</lastBuildDate><atom:link href="https://prrao87.github.io/tags/data-engineering/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Hello, world!</title>
+      <link>https://prrao87.github.io/posts/hello-world/</link>
+      <pubDate>Sat, 29 Apr 2023 11:29:09 -0400</pubDate>
+      
+      <guid>https://prrao87.github.io/posts/hello-world/</guid>
+      <description>Welcome to my blog! Hi there! 👋🏽 I&amp;rsquo;m a data scientist and software engineer with a passion for building intelligent, automated applications using a combination of machine learning, NLP and a variety of databases and software frameworks. I&amp;rsquo;m currently based in Toronto 🇨🇦 and have previously lived in Vancouver (British Columbia), London (U.K.) and Ann Arbor (Michigan). You can always catch me nerding out on some cool recent tech, programming language or framework (heaven knows, we have enough to keep track of in the tech world these days 🚀), so feel free to reach out on my socials if you&amp;rsquo;re in Toronto and wanna chat 😄.</description>
+    </item>
+    
+  </channel>
+</rss>
