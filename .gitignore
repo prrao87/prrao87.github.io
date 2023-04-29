@@ -1,0 +1,5 @@
+.DS_Store
+geckodriver.log
+.idea/
+.hugo_build.lock
+.vscode
