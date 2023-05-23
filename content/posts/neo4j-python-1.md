@@ -1,7 +1,7 @@
 ---
 type: "post"
 title: "Neo4j for Pythonistas: Part 1"
-date: 2023-05-01T21:29:09-04:00
+date: 2023-05-22T21:29:09-04:00
 draft: true
 showTableOfContents: true
 tags:
@@ -15,20 +15,20 @@ tags:
 
 ## Using Pydantic and async Python to build a graph Neo4j
 
-Neo4j has been among the world's [most popular graph databases](https://www.endava.com/en/blog/Engineering/2021/Following-the-patterns-the-rise-of-neo4j-and-graph-databases) for a while now, and I really enjoy working with it, and graphs in general. A quick Google search reveals *lot* of blog posts and tutorials that show how to bulk-load data into Neo4j via Cypher, Neo4j's query language, or [APOC](https://neo4j.com/labs/apoc/) (Awesome Procedures on Cypher). If you're a Python engineer like me (because, ugh, Java 😖), and are looking to use Python all the way to ingest large amounts of data into Neo4j in the most efficient way possible, read on!
+Neo4j has been among the world's [most popular graph databases](https://www.endava.com/en/blog/Engineering/2021/Following-the-patterns-the-rise-of-neo4j-and-graph-databases) for a while now, and I really enjoy working with it, and graphs in general. A quick Google search reveals *a lot* of blog posts and tutorials that show how to bulk-load data into Neo4j via Cypher, Neo4j's query language, or [APOC](https://neo4j.com/labs/apoc/) (Awesome Procedures on Cypher). If you're a Python engineer like me (because, ugh, Java 😖), and are looking to use Python all the way to ingest large amounts of data into Neo4j in the most efficient way possible, read on!
 
 But first, let's take a step back, and ask ourselves, when APOC and Cypher can do the job, why involve Python at all?
 
-* You may already have other data-handling workflows in Python, so switching to another language like Java or bash scripts for Neo4j can be a chore.
+* You may already have other data-handling and analysis code written in Python, so switching to another language like Java or bash scripts for Neo4j can be a chore.
 * Using a data validation framework like [Pydantic](https://docs.pydantic.dev/latest/) allows you to increase the robustness of the ETL process, while staying within the world of Python and not have to glue together tools written in multiple languages.
-* Most database Python clients these days implement asynchronous clients to communicate with databases in a non-blocking manner, and [Neo4j is no exception](https://neo4j.com/docs/python-manual/current/concurrency/).
-* Python's `asyncio` API has evolved a lot since its early days, and it's actually now quite easy to use.
+* Async code that performs I/O can be _fast_. Most database Python clients these days implement asynchronous clients to communicate with databases in a non-blocking manner, and [Neo4j is no exception](https://neo4j.com/docs/python-manual/current/concurrency/).
+* Python's `asyncio` API has evolved a lot since its early days, and it's actually now quite easy to use, with minimal changes in code from the sync version.
 
 Combining data validation via Pydantic with async data ingestion can make for fast, efficient and readable Python code that can be maintained by future engineers without having to deal with a mess of glue code. With that in mind, let's get started with an example!
 
 ## The data
 
-We'll be working with [this wine reviews dataset from Kaggle](https://www.kaggle.com/datasets/zynicide/wine-reviews). It consists of 130k wine reviews from the Wine Enthusiast magazine, including the variety, location, winery, price, description, and some other metadata for each wine. Refer to the Kaggle source for more detailed information on the data and how it was scraped. The original data was made available as a single JSON file. For the purposes of this blog post, the data was converted to newline-delimited JSON (`.jsonl`) format where each line of the file contains a valid JSON object.
+We'll be working with [this wine reviews dataset from Kaggle](https://www.kaggle.com/datasets/zynicide/wine-reviews). It consists of 130k wine reviews from the Wine Enthusiast magazine, including the variety, location, winery, price, description, and some other metadata for each wine. Refer to the Kaggle source for more detailed information on the data and how it was scraped. The original data was downloaded as a single JSON file. For the purposes of this blog post, the data was then converted to newline-delimited JSON (`.jsonl`) format where each line of the file contains a valid JSON object.
 
 An example JSON line is shown below.
 
@@ -53,17 +53,19 @@ An example JSON line is shown below.
 
 ## The graph data model
 
-The first step prior to data import is conceptualizing a data model. This primarily depends on the kinds of questions we're trying to answer. In this dataset, each JSON blob contains information about one particular wine, but, conceptually, how are the wines themselves connected to each other?
+The first key step is conceptualizing a data model for the graph. This primarily depends on the kinds of questions we're trying to answer. In this dataset, each JSON blob contains information about one particular wine, but, conceptually, how are the wines _themselves_ connected to each other?
 
-Inspecting the JSON blob above, we can see that there is not only a rating and price information, but also location information about each wine (country, province, region, etc.). A wine is also tasted by a reviewer, who is a person in the real world with a Twitter handle.
+Inspecting the JSON sample above, we can see that there is not only a rating and price information for each wine, but also location information (country, province, region, etc.). Each wine is also tasted by a reviewer, who is a person in the real world with a Twitter handle.
 
 ### Where graphs really shine
 
-The reason that graph databases are _really_ useful in the real world is best illustrated with an example. Imagine you're building a query API for wine enthusiasts that follow wine reviewers on Twitter. Suppose these end users are interested the question: "Which wine varieties have been most tasted by my favourite reviewer, Roger Voss, and what countries are those wines from"?
+The reason that graph databases are _really_ useful in certain situations is best illustrated with an example. Imagine you're building a query API for wine enthusiasts that follow wine reviewers on Twitter. Suppose these end users are interested the following question:
 
-This seems like a reasonable enough question. But the problem is, the data we have is in the form of individual JSON blobs (as shown above), where each wine reviewer's name and Twitter handle is associated with a *single* wine, and the reviewer's name appears many, many times over the entire dataset. A conventional NoSQL data store (like MongoDB) would require an aggregation query [built through a pipeline](https://www.mongodb.com/docs/manual/core/aggregation-pipeline/) to answer this question, where it would first calculate the number of wines tasted by a person, apply the necessary grouping clauses to gather the wine variety and the country of origin, and finally return the answer. Not only is this approach computationally expensive as the dataset gets larger and larger, it's also *exceptionally unintuitive* to us as human beings to reason about.
+> _"Which wine varieties have been most often tasted by my favourite reviewer, Roger Voss, and what countries are those wines from"?_
 
-Our minds tend to see the real world as a collection of concepts and entities, and graphs, due to their inherent "connected" nature, make it very easy to reason about the data at hand. With this in mind, the following graph model makes sense.
+This seems like a reasonable enough question. But the problem is, our dataset is in the form of individual JSON blobs (as shown above), where each wine reviewer's name and Twitter handle is associated with a *single* wine, and the reviewer's name appears many, many times over the entire dataset. A conventional NoSQL data store (like MongoDB) would require an aggregation query [built as a pipeline](https://www.mongodb.com/docs/manual/core/aggregation-pipeline/) to answer this question, where it would first calculate the number of wines tasted by a person, apply the necessary grouping clauses to gather the wine variety and the country of origin, and finally return the answer. Not only is this approach computationally expensive as the dataset gets larger and larger, it's also *exceptionally unintuitive* to us as human beings to reason about.
+
+Our human minds tend to see the real world as hierarchies of concepts and entities, and graphs, due to their inherent "connected" nature, make it very easy to reason about the data model that can help us answer a given question. With this in mind, the following graph model makes sense.
 
 ![](/images/neo4j-python-1/data_model.png)
 
@@ -73,8 +75,8 @@ If the data is modelled this way, the following Cypher query in Neo4j answers th
 
 
 ```sql
--- Which wine varieties have been most tasted by my favourite reviewer, Roger Voss,
--- and what countries are those wines from
+-- Which wine varieties have been most often tasted by my favourite reviewer, Roger Voss,
+-- and what countries are those wines from?
 MATCH (wine:Wine)-[:TASTED_BY]->(taster:Person {tasterName: "Roger Voss"})
 WITH wine, taster
 MATCH (wine)-[r:IS_FROM_COUNTRY]->(country:Country)
@@ -86,7 +88,7 @@ RETURN
 ORDER BY winesTasted DESC, tasterName LIMIT 5
 ```
 
-The result looks something like below.
+The result would look something like this:
 
 ```
 ╒════════════╤══════════════════════════╤═══════════╤══════════╕
@@ -109,17 +111,17 @@ We can see that Roger Voss is a hugely prolific wine taster! And a [quick Google
 
 ## Data ingestion into Neo4j
 
-With that bit of background out of the way, let's look at how to build the graph using Python. And we won't just be ingesting the data into Neo4j as is. As mentioned before, the following ETL best practices are baked into this process:
+With that bit of background out of the way, let's look at how to build such a graph in Neo4j using Python. As mentioned before, the following ETL best practices are baked into this process:
 
 - __Data quality__: The data is validated via [Pydantic](https://docs.pydantic.dev/latest/) to ensure that the types align with what we expect during querying
 - __Performance__: The Cypher queries that actually perform the merging operations are written with efficiency, quality and scalability in mind
 
 ### Read the data in chunks
 
-To get the best performance (both as per my own experience, as well as the [Neo4j official Cypher docs](https://neo4j.com/docs/python-manual/current/performance/)), we read the data in batches of 10k-25k records, and make use of `WITH` an `UNWIND` clauses in Cypher to expand a list of JSON blobs into individual records that are ingested into Neo4j.
+To get the best performance (as the [Neo4j official Cypher docs](https://neo4j.com/docs/python-manual/current/performance/)), we read the data in batches of 10k-25k records, and make use of `WITH` and `UNWIND` clauses in Cypher to expand a given list of JSON blobs into individual records before ingesting them into Neo4j.
 
 #### 💡 Performance tip
-> Whenever possible, pass a large batch of JSON blobs (i.e., in Python-speak, a "list of dicts") to your ingest function and `UNWIND` them in Cypher for best performance. This minimizes the number of interactions between Python code and the Neo4j database.
+> For best performance, always aim to pass a large chunk of JSON blobs (i.e., in Python-speak, a "list of dicts") to your ingestion function and `UNWIND` them in Cypher, rather than passing each JSON blob individually. This minimizes the I/O overhead between Python and Neo4j.
 
 
 ```python
@@ -147,11 +149,11 @@ data = get_json_data("/path_to_data/", "winemag-data-130k-v2.jsonl")
 chunked_data = chunk_iterable(data, CHUNKSIZE=10_000)
 ```
 
-This snippet shows how to read data from a `.jsonl.gz` file using [srsly]](https://github.com/explosion/srsly), an excellent JSON serialization and deserialization library for Python. The data from `winemag-data-130k-v2.jsonl` is read in and chunked into batches of size 10,000. That is, each chunk contains a list of 10,000 individual wine reviews, all the way up to 130k reviews.
+This snippet shows how to read data from a `.jsonl.gz` file using [srsly](https://github.com/explosion/srsly), an efficient and light-weight JSON serialization/deserialization Python library. The data from `winemag-data-130k-v2.jsonl` is read in and chunked into batches of size 10,000. That is, each chunk contains a list of 10,000 individual wine reviews, all the way up to 130k reviews.
 
 ### Validate the data
 
-A schema is defined in Pydantic that ensures specific data exists and is in the right format prior to passing it to the Neo4j graph. As can be seen below, we state via the Pydantic schema that the fields `id`, `points` and `title` are required fields, and in case they are absent in the data, Pydantic will raise an error, not allowing the record to be ingested to the database.
+A Pydantic schema is created to ensure specific fields exists and that the data is of the expected type prior to passing it to the Neo4j graph. As can be seen below, we state via the Pydantic schema that the fields `id`, `points` and `title` are required fields, and in case they are absent in the data, Pydantic will raise an error, not allowing the record to be ingested to the database.
 
 ```python
 from pydantic import BaseModel, Field, validator
@@ -228,7 +230,7 @@ This build query, stored as a parameterized Cypher query via the Neo4j Python cl
 
 * `UNWIND` a list of 10,000 records into a sequence of "rows" that can be ingested into Neo4j much more efficiently than by passing each row individually
 * `MERGE` each wine as a `:Wine` node along with its metadata
-  * The `MERGE` keyword is used as opposed to `CREATE` to avoid creating duplicates (in case two wines with the same `id` fields exist)
+  * The `MERGE` keyword is used as opposed to the `CREATE` keyword to avoid creating duplicates (in case two wines with the same `id` fields exist)
 * `MERGE` each wine's taster as a `:Person` node, along with the taster's name and Twitter handle
   * `MERGE` the edge between the wine and its taster
 * `MERGE` each wine's country of origin
@@ -241,7 +243,7 @@ The above sequence of steps in the build query will correspond nicely with the [
 
 ### Option 1: Sync loader
 
-The simplest way to wrap all this functionality is to define a `sync` main function using the Neo4j Python client as follows:
+The simplest way to wrap all this functionality in a usable function is to define a `main` function via the Neo4j Python client as follows:
 
 ```python
 
@@ -290,7 +292,7 @@ def main(data: list[JsonBlob]) -> None:
 ```
 
 
-In the above code, we first create a `GraphDatabase` driver, and associate a `session` object with it, that are both encapsulated in a context manager, so that the session and database driver exit cleanly upon completion. Note that a custom `validate` function is defined as follows:
+In the above code, we open a regular (sync) `GraphDatabase` driver and a `session` object via their own context managers, so that the session and database driver exit cleanly upon completion. Note that a custom `validate` function is also defined as follows:
 
 ```python
 def validate(data: list[JsonBlob], exclude_none: bool = False) -> list[JsonBlob]:
@@ -388,7 +390,7 @@ async def main(data: list[JsonBlob]) -> None:
                     print(f"{e}: Failed to ingest IDs in range {min(ids)}-{max(ids)}")
 ```
 
-By just adding a few await keywords, and converting some `def` functions into `async def` functions, we have code that can communicate with the Neo4j database asynchronously! The async `main` function is then simply invoked with an `asyncio.run(main())` command. 🚀
+By just adding a few await keywords, and replacing `def` with `async def`, we have clean, readable code that can communicate with the Neo4j database asynchronously! The async `main` function is then simply invoked with an `asyncio.run(main())` command. 🚀
 
 #### Async run time for full data ingestion
 
@@ -414,7 +416,7 @@ Elapsed time: 6.0603 seconds
 Finished execution!
 ```
 
-Just like in the sync case, the Pydantic validation for 130k records completes in ~3 sec, and the async data ingestion completes in ~6 seconds, giving us a roughly 9 second run time Generally speaking, an async approach using coroutines as shown above vastly outperforms the sync approach, but in this particular scenario, the async API offers only a marginal improvement. This is likely because, Neo4j doesn't asynchronously merge nodes/edges independently of one another to avoid race conditions in which the client may attempt to merge an edge to a node that doesn't yet exist in the graph. Also, we are passing a large list of dicts to Cypher to `UNWIND`, and as a result, most of the work is done by Cypher in either case, so the communication overhead with the database is almost the same in either case. Still, in a much larger dataset in a realistic setting, it's likely that more significant performance improvements will be realized using the async approach.
+Just like in the sync case, the Pydantic validation for 130k records completes in ~3 sec, while the async data ingestion completes in ~6 seconds, giving us a roughly 9 second run time. Generally speaking, a coroutine-based async approach as shown above vastly outperforms the sync approach, but in this particular scenario, the async API offers only a marginal improvement. This is likely because, Neo4j doesn't asynchronously merge nodes/edges independently of one another to avoid race conditions in which the client may attempt to merge an edge to a node that doesn't yet exist in the graph.
 
 
 #### 💡 Why use the async API?
@@ -422,4 +424,76 @@ Just like in the sync case, the Pydantic validation for 130k records completes i
 
 ## Inspect the graph via the Neo4j browser
 
+Check that all the nodes and edges are ingested into the graph as follows.
 
+```sql
+MATCH (n) RETURN DISTINCT LABELS(n) AS nodeType, COUNT(n) as nodeCount
+```
+
+This returns the per-label count of nodes in the graph.
+
+```
+╒════════════╤═════════╕
+│nodeType    │nodeCount│
+╞════════════╪═════════╡
+│["Wine"]    │129971   │
+├────────────┼─────────┤
+│["Province"]│420      │
+├────────────┼─────────┤
+│["Person"]  │19       │
+├────────────┼─────────┤
+│["Country"] │44       │
+└────────────┴─────────┘
+```
+
+Great! All the wine reviews (with each node representing a wine and its metadata) were ingested into the graph!
+
+Here's another Cypher query showing the top-rated Italian wines tasted by our pro, Roger Voss.
+
+```sql
+MATCH (wine:Wine)-[:IS_FROM_COUNTRY]->(country:Country)
+WHERE country.countryName = "Italy"
+WITH wine, country
+MATCH (wine:Wine)-[:TASTED_BY]->(taster:Person)
+WHERE taster.tasterName = "Roger Voss"
+RETURN
+    wine.wineID AS wineID,
+    wine.variety AS variety
+    wine.points AS points,
+    wine.title AS title
+ORDER BY points DESC LIMIT 5
+```
+
+The following result is obtained:
+
+```
+╒══════╤════════════╤══════╤═══════════════════════════════════════════════════════╕
+│wineID│variety     │points│title                                                  │
+╞══════╪════════════╪══════╪═══════════════════════════════════════════════════════╡
+│81398 │"Sangiovese"│95    │"Talenti 1997  Brunello di Montalcino"                 │
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+│81399 │"Sangiovese"│94    │"Tenuta di Sesta 1997  Brunello di Montalcino"         │
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+│125783│"Tocai"     │93    │"Mario Schiopetto 2001 Tocai (Collio)"                 │
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+│81404 │"Sangiovese"│93    │"Biondi Santi 1997 Il Greppo  (Brunello di Montalcino)"│
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+│81403 │"Sangiovese"│93    │"La Gerla 1997  Brunello di Montalcino"                │
+└──────┴────────────┴──────┴───────────────────────────────────────────────────────┘
+```
+
+The graph schema modelled is also easy to output in Neo4j:
+
+```sql
+CALL db.schema.visualization
+```
+
+![](/images/neo4j-python-1/schema.svg)
+
+This is exactly the same as per our sketch in the [earlier section](#the-graph-data-model).
+
+## Conclusions
+
+Whew, there was a lot covered in this post! As described, it's quite simple to build an efficient and maintainable bulk-insert workflow for Neo4j using just Python as the gluing language. Either the sync or async APIs of the [Neo4j Python client](https://github.com/neo4j/neo4j-python-driver) can be used. This official client, maintained by the folks at Neo4j, is under continuous development and is actively maintained, so hopefully, this post gave a useful introduction on how to use it effectively.
+
+In a future post, I'll describe how I typically build custom query APIs using FastAPI on top of the Neo4j graph, to provide results to front end client downstream. Till next time!
