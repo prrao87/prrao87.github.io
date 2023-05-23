@@ -2,7 +2,7 @@
 type: "post"
 title: "Neo4j for Pythonistas: Part 1"
 date: 2023-05-22T21:29:09-04:00
-draft: true
+draft: false
 showTableOfContents: true
 tags:
 - python
@@ -13,7 +13,7 @@ tags:
 - data-engineering
 ---
 
-## Using Pydantic and async Python to build a graph Neo4j
+## Using Pydantic and async Python to build a graph in Neo4j
 
 Neo4j has been among the world's [most popular graph databases](https://www.endava.com/en/blog/Engineering/2021/Following-the-patterns-the-rise-of-neo4j-and-graph-databases) for a while now, and I really enjoy working with it, and graphs in general. A quick Google search reveals *a lot* of blog posts and tutorials that show how to bulk-load data into Neo4j via Cypher, Neo4j's query language, or [APOC](https://neo4j.com/labs/apoc/) (Awesome Procedures on Cypher). If you're a Python engineer like me (because, ugh, Java 😖), and are looking to use Python all the way to ingest large amounts of data into Neo4j in the most efficient way possible, read on!
 
@@ -108,6 +108,7 @@ The result would look something like this:
 
 We can see that Roger Voss is a hugely prolific wine taster! And a [quick Google search reveals the same](https://www.winemag.com/2013/09/19/wes-roger-voss-wins-prestigious-bordeaux-award/) -- Between 2009-2013, Roger had tasted over 3,000 Bordeaux-style red wines! And our dataset in this blog post is from 2017, by which time he managed to taste over 4,700 of them! 🤯
 
+In just a few lines of Cypher, we were able to answer a query that might have taken quite a bit more lines (of less-readable JSON) in another database like MongoDB.
 
 ## Data ingestion into Neo4j
 
@@ -364,9 +365,9 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
     await tx.run(query, data=data)
 ```
 
-Each transaction with Neo4j is awaited, just like any other async function in Python would be. Then, the main function is modified as follows.
+Each transaction with Neo4j is awaited, just like you would any other async function in Python. Then, the `main` function is modified as follows.
 
-```sh
+```python
 async def main(data: list[JsonBlob]) -> None:
      async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
          async with driver.session(database="neo4j") as session:
@@ -446,9 +447,9 @@ This returns the per-label count of nodes in the graph.
 └────────────┴─────────┘
 ```
 
-Great! All the wine reviews (with each node representing a wine and its metadata) were ingested into the graph!
+Great! All the wine reviews (with each node representing a wine and its metadata) were ingested into the graph! We have 420 provinces around the world from which the wines originate, as well as 44 countries of origin in this dataset. There are also 19 human tasters.
 
-Here's another Cypher query showing the top-rated Italian wines tasted by our pro, Roger Voss.
+Here's another Cypher query showing the top-rated Italian wine varieties tasted by our pro, Roger Voss.
 
 ```sql
 MATCH (wine:Wine)-[:IS_FROM_COUNTRY]->(country:Country)
@@ -471,14 +472,14 @@ The following result is obtained:
 │wineID│variety     │points│title                                                  │
 ╞══════╪════════════╪══════╪═══════════════════════════════════════════════════════╡
 │81398 │"Sangiovese"│95    │"Talenti 1997  Brunello di Montalcino"                 │
-├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+├──────┼────────────┼──────┼────
 │81399 │"Sangiovese"│94    │"Tenuta di Sesta 1997  Brunello di Montalcino"         │
 ├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
 │125783│"Tocai"     │93    │"Mario Schiopetto 2001 Tocai (Collio)"                 │
 ├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
 │81404 │"Sangiovese"│93    │"Biondi Santi 1997 Il Greppo  (Brunello di Montalcino)"│
 ├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
-│81403 │"Sangiovese"│93    │"La Gerla 1997  Brunello di Montalcino"                │
+│81403 │"Sangiovese───────────────────────────────────────────────────┤"│93    │"La Gerla 1997  Brunello di Montalcino"                │
 └──────┴────────────┴──────┴───────────────────────────────────────────────────────┘
 ```
 
