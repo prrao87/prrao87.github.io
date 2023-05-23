@@ -114,10 +114,312 @@ With that bit of background out of the way, let's look at how to build the graph
 - __Data quality__: The data is validated via [Pydantic](https://docs.pydantic.dev/latest/) to ensure that the types align with what we expect during querying
 - __Performance__: The Cypher queries that actually perform the merging operations are written with efficiency, quality and scalability in mind
 
+### Read the data in chunks
+
+To get the best performance (both as per my own experience, as well as the [Neo4j official Cypher docs](https://neo4j.com/docs/python-manual/current/performance/)), we read the data in batches of 10k-25k records, and make use of `WITH` an `UNWIND` clauses in Cypher to expand a list of JSON blobs into individual records that are ingested into Neo4j.
+
+#### 💡 Performance tip
+> Whenever possible, pass a large batch of JSON blobs (i.e., in Python-speak, a "list of dicts") to your ingest function and `UNWIND` them in Cypher for best performance. This minimizes the number of interactions between Python code and the Neo4j database.
+
+
+```python
+import srsly
+
+def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[list[JsonBlob]]:
+    """
+    Break a large iterable into an iterable of smaller iterables
+    """
+    for i in range(0, len(item_list), chunksize):
+        yield item_list[i : i + chunksize]
+
+
+def get_json_data(data_dir: Path, filename: str) -> list[JsonBlob]:
+    """Read in data from a JSONL file using srsly"""
+    file_path = data_dir / filename
+    if not file_path.is_file():
+        raise FileNotFoundError(f"No valid .jsonl file found in `{data_dir}`")
+    else:
+        data = srsly.read_gzip_jsonl(file_path)
+    return data
+
+
+data = get_json_data("/path_to_data/", "winemag-data-130k-v2.jsonl")
+chunked_data = chunk_iterable(data, CHUNKSIZE=10_000)
+```
+
+This snippet shows how to read data from a `.jsonl.gz` file using [srsly]](https://github.com/explosion/srsly), an excellent JSON serialization and deserialization library for Python. The data from `winemag-data-130k-v2.jsonl` is read in and chunked into batches of size 10,000. That is, each chunk contains a list of 10,000 individual wine reviews, all the way up to 130k reviews.
+
+### Validate the data
+
+A schema is defined in Pydantic that ensures specific data exists and is in the right format prior to passing it to the Neo4j graph. As can be seen below, we state via the Pydantic schema that the fields `id`, `points` and `title` are required fields, and in case they are absent in the data, Pydantic will raise an error, not allowing the record to be ingested to the database.
+
+```python
+from pydantic import BaseModel, Field, validator
+
+
+class Wine(BaseModel):
+    id: int
+    points: int
+    title: str
+    description: str | None
+    price: float | None
+    variety: str | None
+    winery: str | None
+    country: str | None
+    province: str | None
+    region_1: str | None
+    region_2: str | None
+    # Rename the `designation` field to `vineyard` so it's more intuitive to end user
+    vineyard: str | None = Field(alias="designation")
+    taster_name: str | None
+    taster_twitter_handle: str | None
+
+    @validator("country", pre=True)
+    def validate_country(cls, value: str | None) -> str:
+        # Ensure we have a non-null country value
+        if value is None:
+            return "Unknown"
+        return value
+```
+
+#### 💡 Why enforce a schema?
+
+> Even though Neo4j doesn't enforce schemas, it's generally a good practice to specify a schema via an external framework like Pydantic, with the appropriate data types in a production scenario so that there are no unintended bugs during ingestion, or while querying the data.
+
+
+### Define build query
+
+The next step is to define a build query that `UNWIND`s the list of dicts into individual records that represent the nodes and edges in the graph.
+
+```python
+build_query = """
+    UNWIND $data AS record
+    MERGE (wine:Wine {wineID: record.id})
+        SET wine += {
+            points: record.points,
+            title: record.title,
+            description: record.description,
+            price: record.price,
+            variety: record.variety,
+            winery: record.winery,
+            vineyard: record.vineyard,
+            region_1: record.region_1,
+            region_2: record.region_2
+        }
+    WITH record, wine
+        WHERE record.taster_name IS NOT NULL
+        MERGE (taster:Person {tasterName: record.taster_name})
+            SET taster += {tasterTwitterHandle: record.taster_twitter_handle}
+        MERGE (wine)-[:TASTED_BY]->(taster)
+    WITH record, wine
+        MERGE (country:Country {countryName: record.country})
+        MERGE (wine)-[:IS_FROM_COUNTRY]->(country)
+    WITH record, wine, country
+    WHERE record.province IS NOT NULL
+        MERGE (province:Province {provinceName: record.province})
+        MERGE (wine)-[:IS_FROM_PROVINCE]->(province)
+    WITH record, wine, country, province
+        WHERE record.province IS NOT NULL AND record.country IS NOT NULL
+        MERGE (province)-[:IS_LOCATED_IN]->(country)
+    """
+```
+
+This build query, stored as a parameterized Cypher query via the Neo4j Python client, does the following:
+
+* `UNWIND` a list of 10,000 records into a sequence of "rows" that can be ingested into Neo4j much more efficiently than by passing each row individually
+* `MERGE` each wine as a `:Wine` node along with its metadata
+  * The `MERGE` keyword is used as opposed to `CREATE` to avoid creating duplicates (in case two wines with the same `id` fields exist)
+* `MERGE` each wine's taster as a `:Person` node, along with the taster's name and Twitter handle
+  * `MERGE` the edge between the wine and its taster
+* `MERGE` each wine's country of origin
+  * `MERGE` the edge between the wine and its country of origin
+* `MERGE` each wine's province of origin
+  * `MERGE` the edge between the wine and its province of origin
+* `MERGE` the edge between a province and the country it's in
+
+The above sequence of steps in the build query will correspond nicely with the [graph data model defined above](#the-graph-data-model)!
+
 ### Option 1: Sync loader
 
+The simplest way to wrap all this functionality is to define a `sync` main function using the Neo4j Python client as follows:
+
+```python
+
+def create_indexes_and_constraints(session: Session) -> None:
+    queries = [
+        # constraints
+        "CREATE CONSTRAINT countryName IF NOT EXISTS FOR (c:Country) REQUIRE c.countryName IS UNIQUE ",
+        "CREATE CONSTRAINT wineID IF NOT EXISTS FOR (w:Wine) REQUIRE w.wineID IS UNIQUE ",
+        # indexes
+        "CREATE INDEX provinceName IF NOT EXISTS FOR (p:Province) ON (p.provinceName) ",
+        "CREATE INDEX tasterName IF NOT EXISTS FOR (p:Person) ON (p.tasterName) ",
+        "CREATE FULLTEXT INDEX searchText IF NOT EXISTS FOR (w:Wine) ON EACH [w.title, w.description, w.variety] ",
+    ]
+    for query in queries:
+         session.run(query)
 
 
+def ingest_data(session: Session, validated_data: list[JsonBlob]) -> None:
+    for data in validated_data:
+        ids = [item["id"] for item in data]
+        try:
+            session.execute_write(build_query, data)
+            print(f"Processed ids in range {min(ids)}-{max(ids)}")
+        except Exception as e:
+            print(f"{e}: Failed to ingest IDs in range {min(ids)}-{max(ids)}")
+
+
+def main(data: list[JsonBlob]) -> None:
+     with GraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
+         with driver.session(database="neo4j") as session:
+            # Create indexes and constraints
+            create_indexes_and_constraints(session)
+            # Ingest the data into Neo4j
+            print("Validating data...")
+            validated_data = validate(data, Wine, exclude_none=True)
+            # Break the data into chunks
+            chunked_data = chunk_iterable(validated_data, CHUNKSIZE=10_000)
+            print("Ingesting data...")
+            for chunk in chunked_data:
+                ids = [item["id"] for item in chunk]
+                try:
+                    session.execute_write(build_query, chunk)
+                    print(f"Processed ids in range {min(ids)}-{max(ids)}")
+                except Exception as e:
+                    print(f"{e}: Failed to ingest IDs in range {min(ids)}-{max(ids)}")
+```
+
+
+In the above code, we first create a `GraphDatabase` driver, and associate a `session` object with it, that are both encapsulated in a context manager, so that the session and database driver exit cleanly upon completion. Note that a custom `validate` function is defined as follows:
+
+```python
+def validate(data: list[JsonBlob], exclude_none: bool = False) -> list[JsonBlob]:
+    validated_data = [Wine(**item).dict(exclude_none=exclude_none) for item in data]
+    return validated_data
+```
+
+This function unpacks each blob of JSON (which is a valid Python dict) into the Pydantic model, which validates it and throws an error if the data doesn't conform to the schema specification. If all is well, the data is once again returned as a valid list of dicts for the next steps.
+
+
+The following key steps are performed in sequence:
+
+1. Create appropriate indexes and constraints to speed up ingestion into Neo4j, as per the `create_indexes_and_constraints` function
+2. Validate the entire dataset of 130k records in Pydantic via the 
+3. Chunk up the data into lists of 10k records
+4. Iterate through each chunk
+5. Use the session's `execute_write` method to handle and manage transactions with Neo4j, and pass the build query to this object
+   * The build query unwinds the batch and handles the rest of the work using Cypher
+
+
+#### Sync run time for full data ingestion
+
+> 💡 The timing numbers shown below are from an M2 Macbook Pro, running Python 3.11 and Neo4j 5.7..0 via Docker.
+
+```sh
+$ python bulk_ingest_sync.py
+Validating data...
+Elapsed time: 2.9791 seconds
+Ingesting data...
+Processed ids in range 1-10000
+Processed ids in range 10001-20000
+Processed ids in range 20001-30000
+Processed ids in range 30001-40000
+Processed ids in range 40001-50000
+Processed ids in range 50001-60000
+Processed ids in range 60001-70000
+Processed ids in range 70001-80000
+Processed ids in range 80001-90000
+Processed ids in range 90001-100000
+Processed ids in range 100001-110000
+Processed ids in range 110001-120000
+Processed ids in range 120001-129971
+Elapsed time: 6.2240 seconds
+Finished execution!
+```
+
+And that's it! The standard sync Neo4j Python client was used to effectively read, validate and ingest the data into Neo4j, using just Python, all within roughly 9.5 seconds! Note that the the actual data ingestion took about 6.5 seconds on average across 3 runs, and data validation (for all 130K records) in Pydantic took ~3 seconds.
 
 ### Option 2: Async loader
+
+An alternative way to ingest the data into Neo4j is to use the async client, which applies Python's `async`/`await` syntax to execute code in a non-blocking manner. All it requires is a few small changes to the existing code. Simply switch the existing Neo4j functions (including the build query one) to use the `async`/`await` syntax as follows.
+
+```python
+async def create_indexes_and_constraints(session: AsyncSession) -> None:
+    queries = [
+        # Define constraints and indexes queries the same way as the sync function
+    ] 
+    for query in queries:
+         await session.run(query)
+
+
+async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None:
+    # Same build query as the sync one
+    query = """
+        UNWIND $data AS record
+        ...
+        ...
+    """
+    await tx.run(query, data=data)
+```
+
+Each transaction with Neo4j is awaited, just like any other async function in Python would be. Then, the main function is modified as follows.
+
+```sh
+async def main(data: list[JsonBlob]) -> None:
+     async with AsyncGraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
+         async with driver.session(database="neo4j") as session:
+            # Create indexes and constraints
+            await create_indexes_and_constraints(session)
+            # Ingest the data into Neo4j
+            print("Validating data...")
+            validated_data = validate(data, Wine, exclude_none=True)
+            # Break the data into chunks
+            chunked_data = chunk_iterable(validated_data, CHUNKSIZE=10_000)
+            print("Ingesting data...")
+            for chunk in chunked_data:
+                # Awaiting each chunk in a loop isn't ideal, but it's easiest this way when working with graphs!
+                # Merging edges on top of nodes concurrently can lead to race conditions. Neo4j doesn't allow this,
+                # and prevents the user from merging relationships on nodes that might not exist yet, for good reason.
+                ids = [item["id"] for item in chunk]
+                try:
+                    await session.execute_write(build_query, chunk)
+                    print(f"Processed ids in range {min(ids)}-{max(ids)}")
+                except Exception as e:
+                    print(f"{e}: Failed to ingest IDs in range {min(ids)}-{max(ids)}")
+```
+
+By just adding a few await keywords, and converting some `def` functions into `async def` functions, we have code that can communicate with the Neo4j database asynchronously! The async `main` function is then simply invoked with an `asyncio.run(main())` command. 🚀
+
+#### Async run time for full data ingestion
+
+```sh
+$ python bulk_ingest_async.py
+Validating data...
+Elapsed time: 2.9732 seconds
+Ingesting data...
+Processed ids in range 1-10000
+Processed ids in range 10001-20000
+Processed ids in range 20001-30000
+Processed ids in range 30001-40000
+Processed ids in range 40001-50000
+Processed ids in range 50001-60000
+Processed ids in range 60001-70000
+Processed ids in range 70001-80000
+Processed ids in range 80001-90000
+Processed ids in range 90001-100000
+Processed ids in range 100001-110000
+Processed ids in range 110001-120000
+Processed ids in range 120001-129971
+Elapsed time: 6.0603 seconds
+Finished execution!
+```
+
+Just like in the sync case, the Pydantic validation for 130k records completes in ~3 sec, and the async data ingestion completes in ~6 seconds, giving us a roughly 9 second run time Generally speaking, an async approach using coroutines as shown above vastly outperforms the sync approach, but in this particular scenario, the async API offers only a marginal improvement. This is likely because, Neo4j doesn't asynchronously merge nodes/edges independently of one another to avoid race conditions in which the client may attempt to merge an edge to a node that doesn't yet exist in the graph. Also, we are passing a large list of dicts to Cypher to `UNWIND`, and as a result, most of the work is done by Cypher in either case, so the communication overhead with the database is almost the same in either case. Still, in a much larger dataset in a realistic setting, it's likely that more significant performance improvements will be realized using the async approach.
+
+
+#### 💡 Why use the async API?
+> Although the performance difference in ingesting the full dataset between the sync and async APIs was negligible in this case, it's likely that in a real setting with a much larger dataset, there will be less overhead in communicating with the database, and if using Neo4j alongside an async-friendly framework with FastAPI, it helps to use the async API across the whole code base for readability and ease of maintenance.
+
+## Inspect the graph via the Neo4j browser
+
 
