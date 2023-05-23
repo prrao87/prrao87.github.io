@@ -491,10 +491,14 @@ CALL db.schema.visualization
 
 ![](/images/neo4j-python-1/schema.svg)
 
-This is exactly the same as per our sketch in the [earlier section](#the-graph-data-model).
+This is exactly the same as the sketch [shown earlier](#the-graph-data-model).
 
 ## Conclusions
 
 Whew, there was a lot covered in this post! As described, it's quite simple to build an efficient and maintainable bulk-insert workflow for Neo4j using just Python as the gluing language. Either the sync or async APIs of the [Neo4j Python client](https://github.com/neo4j/neo4j-python-driver) can be used. This official client, maintained by the folks at Neo4j, is under continuous development and is actively maintained, so hopefully, this post gave a useful introduction on how to use it effectively.
 
 In a future post, I'll describe how I typically build custom query APIs using FastAPI on top of the Neo4j graph, to provide results to front end client downstream. Till next time!
+
+## Code
+
+All code shown in this post [is available on GitHub](https://github.com/prrao87/neo4j-python-fastapi).
