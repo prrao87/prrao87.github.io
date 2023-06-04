@@ -6,7 +6,16 @@
     <description>Recent content on The Data Quarry</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sat, 29 Apr 2023 11:29:09 -0400</lastBuildDate><atom:link href="https://prrao87.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 22 May 2023 21:29:09 -0400</lastBuildDate><atom:link href="https://prrao87.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Neo4j for Pythonistas: Part 1</title>
+      <link>https://prrao87.github.io/posts/neo4j-python-1/</link>
+      <pubDate>Mon, 22 May 2023 21:29:09 -0400</pubDate>
+      
+      <guid>https://prrao87.github.io/posts/neo4j-python-1/</guid>
+      <description>Using Pydantic and async Python to build a graph in Neo4j Neo4j has been among the world&amp;rsquo;s most popular graph databases for a while now, and I really enjoy working with it, and graphs in general. A quick Google search reveals a lot of blog posts and tutorials that show how to bulk-load data into Neo4j via Cypher, Neo4j&amp;rsquo;s query language, or APOC (Awesome Procedures on Cypher). If you&amp;rsquo;re a Python engineer like me (because, ugh, Java 😖), and are looking to use Python all the way to ingest large amounts of data into Neo4j in the most efficient way possible, read on!</description>
+    </item>
+    
     <item>
       <title>Hello, world!</title>
       <link>https://prrao87.github.io/posts/hello-world/</link>

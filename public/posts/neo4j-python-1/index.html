@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        :root {
+            --accent-color: #FF4D4D;
+        }
+    </style>
+
+    
+    
+    
+    
+    
+    
+
+    
+    <title>Neo4j for Pythonistas: Part 1</title>
+    <meta name="description" content="Databases, APIs and everything in between">
+    <meta name="keywords" content='blog, data-engineering, database, python, fastapi, neo4j, async, pydantic, knowledge-graphs'>
+
+    <meta property="og:url" content="https://prrao87.github.io/posts/neo4j-python-1/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Neo4j for Pythonistas: Part 1">
+    <meta property="og:description" content="Databases, APIs and everything in between">
+    <meta property="og:image" content="https://prrao87.github.io/images/lake-7884049_640.jpg">
+    <meta property="og:image:secure_url" content="https://prrao87.github.io/images/lake-7884049_640.jpg">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Neo4j for Pythonistas: Part 1">
+    <meta name="twitter:description" content="Databases, APIs and everything in between">
+    <meta property="twitter:domain" content="https://prrao87.github.io/posts/neo4j-python-1/">
+    <meta property="twitter:url" content="https://prrao87.github.io/posts/neo4j-python-1/">
+    <meta name="twitter:image" content="https://prrao87.github.io/images/lake-7884049_640.jpg">
+
+    
+    <link rel="canonical" href="https://prrao87.github.io/posts/neo4j-python-1/" />
+
+    <link rel="stylesheet" type="text/css" href="https://prrao87.github.io/css/normalize.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" type="text/css" href="https://prrao87.github.io/css/main.css">
+    <link disabled id="dark-theme" rel="stylesheet" href="https://prrao87.github.io/css/dark.css">
+
+    <script src="https://prrao87.github.io/js/svg-injector.min.js"></script>
+    <script src="https://prrao87.github.io/js/feather-icons.min.js"></script>
+    <script src="https://prrao87.github.io/js/main.js"></script>
+
+    
+    
+        <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement(document.body, {
+          // customised options
+          // • auto-render specific keys, e.g.:
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+          ],
+          // • rendering keys, e.g.:
+          throwOnError : false
+        });
+      });
+    </script>
+  
+    
+</head>
+<body>
+        <script type="text/javascript">
+            
+            setThemeByUserPref();
+        </script><header class="header">
+    <nav class="header-nav">
+
+        
+        <div class="avatar">
+            <a href="https://prrao87.github.io">
+                <img src="https://prrao87.github.io/images/lake-7884049_640.jpg" alt="avatar" />
+            </a>
+        </div>
+        
+
+        <div class="nav-title">
+            <a class="nav-brand" href="https://prrao87.github.io">The Data Quarry</a>
+        </div>
+
+        <div class="nav-links">
+            
+            <div class="nav-link">
+                <a href="https://prrao87.github.io/"><span data-feather='home'></span> Home </a>
+            </div>
+            
+            <div class="nav-link">
+                <a href="https://prrao87.github.io/about/"><span data-feather='user'></span> About me </a>
+            </div>
+            
+            <div class="nav-link">
+                <a href="https://prrao87.github.io/posts/"><span data-feather='book'></span> Posts </a>
+            </div>
+            
+            <div class="nav-link">
+                <a href="https://prrao87.github.io/projects/"><span data-feather='code'></span> Projects </a>
+            </div>
+            
+            <div class="nav-link">
+                <a href="https://prrao87.github.io/tags/"><span data-feather='tag'></span> Tags </a>
+            </div>
+            
+            <div class="nav-link">
+                <a href="https://github.com/prrao87"><span data-feather='github'></span>  </a>
+            </div>
+            
+            <div class="nav-link">
+                <a href="https://prrao87.github.io/index.xml"><span data-feather='rss'></span>  </a>
+            </div>
+            
+
+            <span class="nav-icons-divider"></span>
+            <div class="nav-link dark-theme-toggle">
+                <span id="dark-theme-toggle-screen-reader-target" class="sr-only"></span>
+                <a>
+                    <span id="theme-toggle-icon" data-feather="moon"></span>
+                </a>
+            </div>
+
+            <div class="nav-link" id="hamburger-menu-toggle">
+                <span id="hamburger-menu-toggle-screen-reader-target" class="sr-only">menu</span>
+                <a>
+                    <span data-feather="menu"></span>
+                </a>
+            </div>
+
+            
+            <ul class="nav-hamburger-list visibility-hidden">
+                
+                <li class="nav-item">
+                    <a href="https://prrao87.github.io/"><span data-feather='home'></span> Home </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="https://prrao87.github.io/about/"><span data-feather='user'></span> About me </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="https://prrao87.github.io/posts/"><span data-feather='book'></span> Posts </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="https://prrao87.github.io/projects/"><span data-feather='code'></span> Projects </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="https://prrao87.github.io/tags/"><span data-feather='tag'></span> Tags </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="https://github.com/prrao87"><span data-feather='github'></span>  </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="https://prrao87.github.io/index.xml"><span data-feather='rss'></span>  </a>
+                </li>
+                
+                <li class="nav-item dark-theme-toggle">
+                    <span id="dark-theme-toggle-screen-reader-target" class="sr-only">theme</span>
+                    <a>
+                        <span id="theme-toggle-icon" data-feather="moon"></span>
+                    </a>
+                </li>
+            </ul>
+
+        </div>
+    </nav>
+</header>
+<main id="content">
+    <div class="post container">
+    <div class="post-header-section">
+        <h1>Neo4j for Pythonistas: Part 1</h1>
+        <small role="doc-subtitle"></small>
+        <p class="post-date">
+            May 22, 2023
+        </p>
+
+        <ul class="post-tags">
+        
+            <li class="post-tag"><a href="https://prrao87.github.io/tags/python">python</a></li>
+        
+            <li class="post-tag"><a href="https://prrao87.github.io/tags/neo4j">neo4j</a></li>
+        
+            <li class="post-tag"><a href="https://prrao87.github.io/tags/async">async</a></li>
+        
+            <li class="post-tag"><a href="https://prrao87.github.io/tags/pydantic">pydantic</a></li>
+        
+            <li class="post-tag"><a href="https://prrao87.github.io/tags/knowledge-graphs">knowledge-graphs</a></li>
+        
+            <li class="post-tag"><a href="https://prrao87.github.io/tags/data-engineering">data-engineering</a></li>
+        
+        </ul>
+    </div>
+
+    <div class="post-content">
+        <p>
+            <h2 id="using-pydantic-and-async-python-to-build-a-graph-in-neo4j">Using Pydantic and async Python to build a graph in Neo4j</h2>
+<p>Neo4j has been among the world&rsquo;s <a href="https://www.endava.com/en/blog/Engineering/2021/Following-the-patterns-the-rise-of-neo4j-and-graph-databases">most popular graph databases</a> for a while now, and I really enjoy working with it, and graphs in general. A quick Google search reveals <em>a lot</em> of blog posts and tutorials that show how to bulk-load data into Neo4j via Cypher, Neo4j&rsquo;s query language, or <a href="https://neo4j.com/labs/apoc/">APOC</a> (Awesome Procedures on Cypher). If you&rsquo;re a Python engineer like me (because, ugh, Java 😖), and are looking to use Python all the way to ingest large amounts of data into Neo4j in the most efficient way possible, read on!</p>
+<p>But first, let&rsquo;s take a step back, and ask ourselves, when APOC and Cypher can do the job, why involve Python at all?</p>
+<ul>
+<li>You may already have other data-handling and analysis code written in Python, so switching to another language like Java or bash scripts for Neo4j can be a chore.</li>
+<li>Using a data validation framework like <a href="https://docs.pydantic.dev/latest/">Pydantic</a> allows you to increase the robustness of the ETL process, while staying within the world of Python and not have to glue together tools written in multiple languages.</li>
+<li>Async code that performs I/O can be <em>fast</em>. Most database Python clients these days implement asynchronous clients to communicate with databases in a non-blocking manner, and <a href="https://neo4j.com/docs/python-manual/current/concurrency/">Neo4j is no exception</a>.</li>
+<li>Python&rsquo;s <code>asyncio</code> API has evolved a lot since its early days, and it&rsquo;s actually now quite easy to use, with minimal changes in code from the sync version.</li>
+</ul>
+<p>Combining data validation via Pydantic with async data ingestion can make for fast, efficient and readable Python code that can be maintained by future engineers without having to deal with a mess of glue code. With that in mind, let&rsquo;s get started with an example!</p>
+<h2 id="the-data">The data</h2>
+<p>We&rsquo;ll be working with <a href="https://www.kaggle.com/datasets/zynicide/wine-reviews">this wine reviews dataset from Kaggle</a>. It consists of 130k wine reviews from the Wine Enthusiast magazine, including the variety, location, winery, price, description, and some other metadata for each wine. Refer to the Kaggle source for more detailed information on the data and how it was scraped. The original data was downloaded as a single JSON file. For the purposes of this blog post, the data was then converted to newline-delimited JSON (<code>.jsonl</code>) format where each line of the file contains a valid JSON object.</p>
+<p>An example JSON line is shown below.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;points&#34;</span>: <span style="color:#e6db74">&#34;90&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;title&#34;</span>: <span style="color:#e6db74">&#34;Castello San Donato in Perano 2009 Riserva  (Chianti Classico)&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;description&#34;</span>: <span style="color:#e6db74">&#34;Made from a blend of 85% Sangiovese and 15% Merlot, this ripe wine delivers soft plum, black currants, clove and cracked pepper sensations accented with coffee and espresso notes. A backbone of firm tannins give structure. Drink now through 2019.&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;taster_name&#34;</span>: <span style="color:#e6db74">&#34;Kerin O&#39;Keefe&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;taster_twitter_handle&#34;</span>: <span style="color:#e6db74">&#34;@kerinokeefe&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;price&#34;</span>: <span style="color:#ae81ff">30</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;designation&#34;</span>: <span style="color:#e6db74">&#34;Riserva&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;variety&#34;</span>: <span style="color:#e6db74">&#34;Red Blend&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;region_1&#34;</span>: <span style="color:#e6db74">&#34;Chianti Classico&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;region_2&#34;</span>: <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;province&#34;</span>: <span style="color:#e6db74">&#34;Tuscany&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;country&#34;</span>: <span style="color:#e6db74">&#34;Italy&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;winery&#34;</span>: <span style="color:#e6db74">&#34;Castello San Donato in Perano&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;id&#34;</span>: <span style="color:#ae81ff">40825</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="the-graph-data-model">The graph data model</h2>
+<p>The first key step is conceptualizing a data model for the graph. This primarily depends on the kinds of questions we&rsquo;re trying to answer. In this dataset, each JSON blob contains information about one particular wine, but, conceptually, how are the wines <em>themselves</em> connected to each other?</p>
+<p>Inspecting the JSON sample above, we can see that there is not only a rating and price information for each wine, but also location information (country, province, region, etc.). Each wine is also tasted by a reviewer, who is a person in the real world with a Twitter handle.</p>
+<h3 id="where-graphs-really-shine">Where graphs really shine</h3>
+<p>The reason that graph databases are <em>really</em> useful in certain situations is best illustrated with an example. Imagine you&rsquo;re building a query API for wine enthusiasts that follow wine reviewers on Twitter. Suppose these end users are interested the following question:</p>
+<blockquote>
+<p><em>&ldquo;Which wine varieties have been most often tasted by my favourite reviewer, Roger Voss, and what countries are those wines from&rdquo;?</em></p>
+</blockquote>
+<p>This seems like a reasonable enough question. But the problem is, our dataset is in the form of individual JSON blobs (as shown above), where each wine reviewer&rsquo;s name and Twitter handle is associated with a <em>single</em> wine, and the reviewer&rsquo;s name appears many, many times over the entire dataset. A conventional NoSQL data store (like MongoDB) would require an aggregation query <a href="https://www.mongodb.com/docs/manual/core/aggregation-pipeline/">built as a pipeline</a> to answer this question, where it would first calculate the number of wines tasted by a person, apply the necessary grouping clauses to gather the wine variety and the country of origin, and finally return the answer. Not only is this approach computationally expensive as the dataset gets larger and larger, it&rsquo;s also <em>exceptionally unintuitive</em> to us as human beings to reason about.</p>
+<p>Our human minds tend to see the real world as hierarchies of concepts and entities, and graphs, due to their inherent &ldquo;connected&rdquo; nature, make it very easy to reason about the data model that can help us answer a given question. With this in mind, the following graph model makes sense.</p>
+<p><img src="data_model.png" alt=""></p>
+<p>We can view each JSON blob as a <code>Wine</code> node, that connects to a <code>Person</code> node, where the <code>Person</code> is a taster. In addition, each wine is also connected to a <code>Country</code> node and a <code>Province</code> node, with each type of location indicating where the wine originates. In addition, a <code>Province</code> can be located in a <code>Country</code>, but not the other way around. The above data model encapsulates all of these real-world relationships nicely, capturing both the <em>nature</em> and the <em>direction</em> of the relationship, and as an added bonus, makes querying a lot easier as well.</p>
+<p>If the data is modelled this way, the following Cypher query in Neo4j answers the original question in just a few lines of code:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- Which wine varieties have been most often tasted by my favourite reviewer, Roger Voss,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">-- and what countries are those wines from?
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">MATCH</span> (wine:Wine)<span style="color:#f92672">-</span>[:TASTED_BY]<span style="color:#f92672">-&gt;</span>(taster:Person <span style="color:#960050;background-color:#1e0010">{</span>tasterName: <span style="color:#e6db74">&#34;Roger Voss&#34;</span><span style="color:#960050;background-color:#1e0010">}</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">WITH</span> wine, taster
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">MATCH</span> (wine)<span style="color:#f92672">-</span>[r:IS_FROM_COUNTRY]<span style="color:#f92672">-&gt;</span>(country:Country)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">RETURN</span>
+</span></span><span style="display:flex;"><span>  taster.tasterName <span style="color:#66d9ef">AS</span> tasterName,
+</span></span><span style="display:flex;"><span>  wine.variety <span style="color:#66d9ef">AS</span> wineVariety,
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">count</span>(r) <span style="color:#66d9ef">AS</span> winesTasted,
+</span></span><span style="display:flex;"><span>  country.countryName <span style="color:#66d9ef">AS</span> country
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">ORDER</span> <span style="color:#66d9ef">BY</span> winesTasted <span style="color:#66d9ef">DESC</span>, tasterName <span style="color:#66d9ef">LIMIT</span> <span style="color:#ae81ff">5</span>
+</span></span></code></pre></div><p>The result would look something like this:</p>
+<pre tabindex="0"><code>╒════════════╤══════════════════════════╤═══════════╤══════════╕
+│tasterName  │wineVariety               │winesTasted│country   │
+╞════════════╪══════════════════════════╪═══════════╪══════════╡
+│&#34;Roger Voss&#34;│&#34;Bordeaux-style Red Blend&#34;│4702       │&#34;France&#34;  │
+├────────────┼──────────────────────────┼───────────┼──────────┤
+│&#34;Roger Voss&#34;│&#34;Chardonnay&#34;              │2724       │&#34;France&#34;  │
+├────────────┼──────────────────────────┼───────────┼──────────┤
+│&#34;Roger Voss&#34;│&#34;Portuguese Red&#34;          │2462       │&#34;Portugal&#34;│
+├────────────┼──────────────────────────┼───────────┼──────────┤
+│&#34;Roger Voss&#34;│&#34;Pinot Noir&#34;              │1827       │&#34;France&#34;  │
+├────────────┼──────────────────────────┼───────────┼──────────┤
+│&#34;Roger Voss&#34;│&#34;Rosé&#34;                    │1555       │&#34;France&#34;  │
+└────────────┴──────────────────────────┴───────────┴──────────┘
+</code></pre><p>We can see that Roger Voss is a hugely prolific wine taster! And a <a href="https://www.winemag.com/2013/09/19/wes-roger-voss-wins-prestigious-bordeaux-award/">quick Google search reveals the same</a> &ndash; Between 2009-2013, Roger had tasted over 3,000 Bordeaux-style red wines! And our dataset in this blog post is from 2017, by which time he managed to taste over 4,700 of them! 🤯</p>
+<p>In just a few lines of Cypher, we were able to answer a query that might have taken quite a bit more lines (of less-readable JSON) in another database like MongoDB.</p>
+<h2 id="data-ingestion-into-neo4j">Data ingestion into Neo4j</h2>
+<p>With that bit of background out of the way, let&rsquo;s look at how to build such a graph in Neo4j using Python. As mentioned before, the following ETL best practices are baked into this process:</p>
+<ul>
+<li><strong>Data quality</strong>: The data is validated via <a href="https://docs.pydantic.dev/latest/">Pydantic</a> to ensure that the types align with what we expect during querying</li>
+<li><strong>Performance</strong>: The Cypher queries that actually perform the merging operations are written with efficiency, quality and scalability in mind</li>
+</ul>
+<h3 id="read-the-data-in-chunks">Read the data in chunks</h3>
+<p>To get the best performance (as the <a href="https://neo4j.com/docs/python-manual/current/performance/">Neo4j official Cypher docs</a>), we read the data in batches of 10k-25k records, and make use of <code>WITH</code> and <code>UNWIND</code> clauses in Cypher to expand a given list of JSON blobs into individual records before ingesting them into Neo4j.</p>
+<h4 id="-performance-tip">💡 Performance tip</h4>
+<blockquote>
+<p>For best performance, always aim to pass a large chunk of JSON blobs (i.e., in Python-speak, a &ldquo;list of dicts&rdquo;) to your ingestion function and <code>UNWIND</code> them in Cypher, rather than passing each JSON blob individually. This minimizes the I/O overhead between Python and Neo4j.</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> srsly
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">chunk_iterable</span>(item_list: list[JsonBlob], chunksize: int) <span style="color:#f92672">-&gt;</span> Iterator[list[JsonBlob]]:
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    Break a large iterable into an iterable of smaller iterables
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">0</span>, len(item_list), chunksize):
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">yield</span> item_list[i : i <span style="color:#f92672">+</span> chunksize]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">get_json_data</span>(data_dir: Path, filename: str) <span style="color:#f92672">-&gt;</span> list[JsonBlob]:
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;Read in data from a JSONL file using srsly&#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    file_path <span style="color:#f92672">=</span> data_dir <span style="color:#f92672">/</span> filename
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">not</span> file_path<span style="color:#f92672">.</span>is_file():
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">raise</span> <span style="color:#a6e22e">FileNotFoundError</span>(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;No valid .jsonl file found in `</span><span style="color:#e6db74">{</span>data_dir<span style="color:#e6db74">}</span><span style="color:#e6db74">`&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">else</span>:
+</span></span><span style="display:flex;"><span>        data <span style="color:#f92672">=</span> srsly<span style="color:#f92672">.</span>read_gzip_jsonl(file_path)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> data
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>data <span style="color:#f92672">=</span> get_json_data(<span style="color:#e6db74">&#34;/path_to_data/&#34;</span>, <span style="color:#e6db74">&#34;winemag-data-130k-v2.jsonl&#34;</span>)
+</span></span><span style="display:flex;"><span>chunked_data <span style="color:#f92672">=</span> chunk_iterable(data, CHUNKSIZE<span style="color:#f92672">=</span><span style="color:#ae81ff">10_000</span>)
+</span></span></code></pre></div><p>This snippet shows how to read data from a <code>.jsonl.gz</code> file using <a href="https://github.com/explosion/srsly">srsly</a>, an efficient and light-weight JSON serialization/deserialization Python library. The data from <code>winemag-data-130k-v2.jsonl</code> is read in and chunked into batches of size 10,000. That is, each chunk contains a list of 10,000 individual wine reviews, all the way up to 130k reviews.</p>
+<h3 id="validate-the-data">Validate the data</h3>
+<p>A Pydantic schema is created to ensure specific fields exists and that the data is of the expected type prior to passing it to the Neo4j graph. As can be seen below, we state via the Pydantic schema that the fields <code>id</code>, <code>points</code> and <code>title</code> are required fields, and in case they are absent in the data, Pydantic will raise an error, not allowing the record to be ingested to the database.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> pydantic <span style="color:#f92672">import</span> BaseModel, Field, validator
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Wine</span>(BaseModel):
+</span></span><span style="display:flex;"><span>    id: int
+</span></span><span style="display:flex;"><span>    points: int
+</span></span><span style="display:flex;"><span>    title: str
+</span></span><span style="display:flex;"><span>    description: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    price: float <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    variety: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    winery: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    country: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    province: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    region_1: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    region_2: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># Rename the `designation` field to `vineyard` so it&#39;s more intuitive to end user</span>
+</span></span><span style="display:flex;"><span>    vineyard: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span> <span style="color:#f92672">=</span> Field(alias<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;designation&#34;</span>)
+</span></span><span style="display:flex;"><span>    taster_name: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>    taster_twitter_handle: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@validator</span>(<span style="color:#e6db74">&#34;country&#34;</span>, pre<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">validate_country</span>(cls, value: str <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>) <span style="color:#f92672">-&gt;</span> str:
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># Ensure we have a non-null country value</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> value <span style="color:#f92672">is</span> <span style="color:#66d9ef">None</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;Unknown&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> value
+</span></span></code></pre></div><h4 id="-why-enforce-a-schema">💡 Why enforce a schema?</h4>
+<blockquote>
+<p>Even though Neo4j doesn&rsquo;t enforce schemas, it&rsquo;s generally a good practice to specify a schema via an external framework like Pydantic, with the appropriate data types in a production scenario so that there are no unintended bugs during ingestion, or while querying the data.</p>
+</blockquote>
+<h3 id="define-build-query">Define build query</h3>
+<p>The next step is to define a build query that <code>UNWIND</code>s the list of dicts into individual records that represent the nodes and edges in the graph.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>build_query <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    UNWIND $data AS record
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    MERGE (wine:Wine {wineID: record.id})
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        SET wine += {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            points: record.points,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            title: record.title,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            description: record.description,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            price: record.price,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            variety: record.variety,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            winery: record.winery,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            vineyard: record.vineyard,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            region_1: record.region_1,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            region_2: record.region_2
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    WITH record, wine
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        WHERE record.taster_name IS NOT NULL
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        MERGE (taster:Person {tasterName: record.taster_name})
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            SET taster += {tasterTwitterHandle: record.taster_twitter_handle}
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        MERGE (wine)-[:TASTED_BY]-&gt;(taster)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    WITH record, wine
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        MERGE (country:Country {countryName: record.country})
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        MERGE (wine)-[:IS_FROM_COUNTRY]-&gt;(country)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    WITH record, wine, country
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    WHERE record.province IS NOT NULL
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        MERGE (province:Province {provinceName: record.province})
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        MERGE (wine)-[:IS_FROM_PROVINCE]-&gt;(province)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    WITH record, wine, country, province
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        WHERE record.province IS NOT NULL AND record.country IS NOT NULL
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        MERGE (province)-[:IS_LOCATED_IN]-&gt;(country)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+</span></span></code></pre></div><p>This build query, stored as a parameterized Cypher query via the Neo4j Python client, does the following:</p>
+<ul>
+<li><code>UNWIND</code> a list of 10,000 records into a sequence of &ldquo;rows&rdquo; that can be ingested into Neo4j much more efficiently than by passing each row individually</li>
+<li><code>MERGE</code> each wine as a <code>:Wine</code> node along with its metadata
+<ul>
+<li>The <code>MERGE</code> keyword is used as opposed to the <code>CREATE</code> keyword to avoid creating duplicates (in case two wines with the same <code>id</code> fields exist)</li>
+</ul>
+</li>
+<li><code>MERGE</code> each wine&rsquo;s taster as a <code>:Person</code> node, along with the taster&rsquo;s name and Twitter handle
+<ul>
+<li><code>MERGE</code> the edge between the wine and its taster</li>
+</ul>
+</li>
+<li><code>MERGE</code> each wine&rsquo;s country of origin
+<ul>
+<li><code>MERGE</code> the edge between the wine and its country of origin</li>
+</ul>
+</li>
+<li><code>MERGE</code> each wine&rsquo;s province of origin
+<ul>
+<li><code>MERGE</code> the edge between the wine and its province of origin</li>
+</ul>
+</li>
+<li><code>MERGE</code> the edge between a province and the country it&rsquo;s in</li>
+</ul>
+<p>The above sequence of steps in the build query will correspond nicely with the <a href="#the-graph-data-model">graph data model defined above</a>!</p>
+<h3 id="option-1-sync-loader">Option 1: Sync loader</h3>
+<p>The simplest way to wrap all this functionality in a usable function is to define a <code>main</code> function via the Neo4j Python client as follows:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">create_indexes_and_constraints</span>(session: Session) <span style="color:#f92672">-&gt;</span> <span style="color:#66d9ef">None</span>:
+</span></span><span style="display:flex;"><span>    queries <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># constraints</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;CREATE CONSTRAINT countryName IF NOT EXISTS FOR (c:Country) REQUIRE c.countryName IS UNIQUE &#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;CREATE CONSTRAINT wineID IF NOT EXISTS FOR (w:Wine) REQUIRE w.wineID IS UNIQUE &#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># indexes</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;CREATE INDEX provinceName IF NOT EXISTS FOR (p:Province) ON (p.provinceName) &#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;CREATE INDEX tasterName IF NOT EXISTS FOR (p:Person) ON (p.tasterName) &#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;CREATE FULLTEXT INDEX searchText IF NOT EXISTS FOR (w:Wine) ON EACH [w.title, w.description, w.variety] &#34;</span>,
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> query <span style="color:#f92672">in</span> queries:
+</span></span><span style="display:flex;"><span>         session<span style="color:#f92672">.</span>run(query)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">ingest_data</span>(session: Session, validated_data: list[JsonBlob]) <span style="color:#f92672">-&gt;</span> <span style="color:#66d9ef">None</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> data <span style="color:#f92672">in</span> validated_data:
+</span></span><span style="display:flex;"><span>        ids <span style="color:#f92672">=</span> [item[<span style="color:#e6db74">&#34;id&#34;</span>] <span style="color:#66d9ef">for</span> item <span style="color:#f92672">in</span> data]
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">try</span>:
+</span></span><span style="display:flex;"><span>            session<span style="color:#f92672">.</span>execute_write(build_query, data)
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;Processed ids in range </span><span style="color:#e6db74">{</span>min(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">-</span><span style="color:#e6db74">{</span>max(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">except</span> <span style="color:#a6e22e">Exception</span> <span style="color:#66d9ef">as</span> e:
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>e<span style="color:#e6db74">}</span><span style="color:#e6db74">: Failed to ingest IDs in range </span><span style="color:#e6db74">{</span>min(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">-</span><span style="color:#e6db74">{</span>max(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>(data: list[JsonBlob]) <span style="color:#f92672">-&gt;</span> <span style="color:#66d9ef">None</span>:
+</span></span><span style="display:flex;"><span>     <span style="color:#66d9ef">with</span> GraphDatabase<span style="color:#f92672">.</span>driver(URI, auth<span style="color:#f92672">=</span>(NEO4J_USER, NEO4J_PASSWORD)) <span style="color:#66d9ef">as</span> driver:
+</span></span><span style="display:flex;"><span>         <span style="color:#66d9ef">with</span> driver<span style="color:#f92672">.</span>session(database<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;neo4j&#34;</span>) <span style="color:#66d9ef">as</span> session:
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e"># Create indexes and constraints</span>
+</span></span><span style="display:flex;"><span>            create_indexes_and_constraints(session)
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e"># Ingest the data into Neo4j</span>
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">&#34;Validating data...&#34;</span>)
+</span></span><span style="display:flex;"><span>            validated_data <span style="color:#f92672">=</span> validate(data, Wine, exclude_none<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e"># Break the data into chunks</span>
+</span></span><span style="display:flex;"><span>            chunked_data <span style="color:#f92672">=</span> chunk_iterable(validated_data, CHUNKSIZE<span style="color:#f92672">=</span><span style="color:#ae81ff">10_000</span>)
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">&#34;Ingesting data...&#34;</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">for</span> chunk <span style="color:#f92672">in</span> chunked_data:
+</span></span><span style="display:flex;"><span>                ids <span style="color:#f92672">=</span> [item[<span style="color:#e6db74">&#34;id&#34;</span>] <span style="color:#66d9ef">for</span> item <span style="color:#f92672">in</span> chunk]
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">try</span>:
+</span></span><span style="display:flex;"><span>                    session<span style="color:#f92672">.</span>execute_write(build_query, chunk)
+</span></span><span style="display:flex;"><span>                    print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;Processed ids in range </span><span style="color:#e6db74">{</span>min(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">-</span><span style="color:#e6db74">{</span>max(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">except</span> <span style="color:#a6e22e">Exception</span> <span style="color:#66d9ef">as</span> e:
+</span></span><span style="display:flex;"><span>                    print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>e<span style="color:#e6db74">}</span><span style="color:#e6db74">: Failed to ingest IDs in range </span><span style="color:#e6db74">{</span>min(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">-</span><span style="color:#e6db74">{</span>max(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span></code></pre></div><p>In the above code, we open a regular (sync) <code>GraphDatabase</code> driver and a <code>session</code> object via their own context managers, so that the session and database driver exit cleanly upon completion. Note that a custom <code>validate</code> function is also defined as follows:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">validate</span>(data: list[JsonBlob], exclude_none: bool <span style="color:#f92672">=</span> <span style="color:#66d9ef">False</span>) <span style="color:#f92672">-&gt;</span> list[JsonBlob]:
+</span></span><span style="display:flex;"><span>    validated_data <span style="color:#f92672">=</span> [Wine(<span style="color:#f92672">**</span>item)<span style="color:#f92672">.</span>dict(exclude_none<span style="color:#f92672">=</span>exclude_none) <span style="color:#66d9ef">for</span> item <span style="color:#f92672">in</span> data]
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> validated_data
+</span></span></code></pre></div><p>This function unpacks each blob of JSON (which is a valid Python dict) into the Pydantic model, which validates it and throws an error if the data doesn&rsquo;t conform to the schema specification. If all is well, the data is once again returned as a valid list of dicts for the next steps.</p>
+<p>The following key steps are performed in sequence:</p>
+<ol>
+<li>Create appropriate indexes and constraints to speed up ingestion into Neo4j, as per the <code>create_indexes_and_constraints</code> function</li>
+<li>Validate the entire dataset of 130k records in Pydantic via the</li>
+<li>Chunk up the data into lists of 10k records</li>
+<li>Iterate through each chunk</li>
+<li>Use the session&rsquo;s <code>execute_write</code> method to handle and manage transactions with Neo4j, and pass the build query to this object
+<ul>
+<li>The build query unwinds the batch and handles the rest of the work using Cypher</li>
+</ul>
+</li>
+</ol>
+<h4 id="sync-run-time-for-full-data-ingestion">Sync run time for full data ingestion</h4>
+<blockquote>
+<p>💡 The timing numbers shown below are from an M2 Macbook Pro, running Python 3.11 and Neo4j 5.7..0 via Docker.</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>$ python bulk_ingest_sync.py
+</span></span><span style="display:flex;"><span>Validating data...
+</span></span><span style="display:flex;"><span>Elapsed time: 2.9791 seconds
+</span></span><span style="display:flex;"><span>Ingesting data...
+</span></span><span style="display:flex;"><span>Processed ids in range 1-10000
+</span></span><span style="display:flex;"><span>Processed ids in range 10001-20000
+</span></span><span style="display:flex;"><span>Processed ids in range 20001-30000
+</span></span><span style="display:flex;"><span>Processed ids in range 30001-40000
+</span></span><span style="display:flex;"><span>Processed ids in range 40001-50000
+</span></span><span style="display:flex;"><span>Processed ids in range 50001-60000
+</span></span><span style="display:flex;"><span>Processed ids in range 60001-70000
+</span></span><span style="display:flex;"><span>Processed ids in range 70001-80000
+</span></span><span style="display:flex;"><span>Processed ids in range 80001-90000
+</span></span><span style="display:flex;"><span>Processed ids in range 90001-100000
+</span></span><span style="display:flex;"><span>Processed ids in range 100001-110000
+</span></span><span style="display:flex;"><span>Processed ids in range 110001-120000
+</span></span><span style="display:flex;"><span>Processed ids in range 120001-129971
+</span></span><span style="display:flex;"><span>Elapsed time: 6.2240 seconds
+</span></span><span style="display:flex;"><span>Finished execution!
+</span></span></code></pre></div><p>And that&rsquo;s it! The standard sync Neo4j Python client was used to effectively read, validate and ingest the data into Neo4j, using just Python, all within roughly 9.5 seconds! Note that the the actual data ingestion took about 6.5 seconds on average across 3 runs, and data validation (for all 130K records) in Pydantic took ~3 seconds.</p>
+<h3 id="option-2-async-loader">Option 2: Async loader</h3>
+<p>An alternative way to ingest the data into Neo4j is to use the async client, which applies Python&rsquo;s <code>async</code>/<code>await</code> syntax to execute code in a non-blocking manner. All it requires is a few small changes to the existing code. Simply switch the existing Neo4j functions (including the build query one) to use the <code>async</code>/<code>await</code> syntax as follows.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">create_indexes_and_constraints</span>(session: AsyncSession) <span style="color:#f92672">-&gt;</span> <span style="color:#66d9ef">None</span>:
+</span></span><span style="display:flex;"><span>    queries <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># Define constraints and indexes queries the same way as the sync function</span>
+</span></span><span style="display:flex;"><span>    ] 
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> query <span style="color:#f92672">in</span> queries:
+</span></span><span style="display:flex;"><span>         <span style="color:#66d9ef">await</span> session<span style="color:#f92672">.</span>run(query)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">build_query</span>(tx: AsyncManagedTransaction, data: list[JsonBlob]) <span style="color:#f92672">-&gt;</span> <span style="color:#66d9ef">None</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># Same build query as the sync one</span>
+</span></span><span style="display:flex;"><span>    query <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        UNWIND $data AS record
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        ...
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        ...
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> tx<span style="color:#f92672">.</span>run(query, data<span style="color:#f92672">=</span>data)
+</span></span></code></pre></div><p>Each transaction with Neo4j is awaited, just like you would any other async function in Python. Then, the <code>main</code> function is modified as follows.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>(data: list[JsonBlob]) <span style="color:#f92672">-&gt;</span> <span style="color:#66d9ef">None</span>:
+</span></span><span style="display:flex;"><span>     <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">with</span> AsyncGraphDatabase<span style="color:#f92672">.</span>driver(URI, auth<span style="color:#f92672">=</span>(NEO4J_USER, NEO4J_PASSWORD)) <span style="color:#66d9ef">as</span> driver:
+</span></span><span style="display:flex;"><span>         <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">with</span> driver<span style="color:#f92672">.</span>session(database<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;neo4j&#34;</span>) <span style="color:#66d9ef">as</span> session:
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e"># Create indexes and constraints</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">await</span> create_indexes_and_constraints(session)
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e"># Ingest the data into Neo4j</span>
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">&#34;Validating data...&#34;</span>)
+</span></span><span style="display:flex;"><span>            validated_data <span style="color:#f92672">=</span> validate(data, Wine, exclude_none<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e"># Break the data into chunks</span>
+</span></span><span style="display:flex;"><span>            chunked_data <span style="color:#f92672">=</span> chunk_iterable(validated_data, CHUNKSIZE<span style="color:#f92672">=</span><span style="color:#ae81ff">10_000</span>)
+</span></span><span style="display:flex;"><span>            print(<span style="color:#e6db74">&#34;Ingesting data...&#34;</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">for</span> chunk <span style="color:#f92672">in</span> chunked_data:
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e"># Awaiting each chunk in a loop isn&#39;t ideal, but it&#39;s easiest this way when working with graphs!</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e"># Merging edges on top of nodes concurrently can lead to race conditions. Neo4j doesn&#39;t allow this,</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e"># and prevents the user from merging relationships on nodes that might not exist yet, for good reason.</span>
+</span></span><span style="display:flex;"><span>                ids <span style="color:#f92672">=</span> [item[<span style="color:#e6db74">&#34;id&#34;</span>] <span style="color:#66d9ef">for</span> item <span style="color:#f92672">in</span> chunk]
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">try</span>:
+</span></span><span style="display:flex;"><span>                    <span style="color:#66d9ef">await</span> session<span style="color:#f92672">.</span>execute_write(build_query, chunk)
+</span></span><span style="display:flex;"><span>                    print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;Processed ids in range </span><span style="color:#e6db74">{</span>min(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">-</span><span style="color:#e6db74">{</span>max(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">except</span> <span style="color:#a6e22e">Exception</span> <span style="color:#66d9ef">as</span> e:
+</span></span><span style="display:flex;"><span>                    print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>e<span style="color:#e6db74">}</span><span style="color:#e6db74">: Failed to ingest IDs in range </span><span style="color:#e6db74">{</span>min(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">-</span><span style="color:#e6db74">{</span>max(ids)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span></code></pre></div><p>By just adding a few await keywords, and replacing <code>def</code> with <code>async def</code>, we have clean, readable code that can communicate with the Neo4j database asynchronously! The async <code>main</code> function is then simply invoked with an <code>asyncio.run(main())</code> command. 🚀</p>
+<h4 id="async-run-time-for-full-data-ingestion">Async run time for full data ingestion</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>$ python bulk_ingest_async.py
+</span></span><span style="display:flex;"><span>Validating data...
+</span></span><span style="display:flex;"><span>Elapsed time: 2.9732 seconds
+</span></span><span style="display:flex;"><span>Ingesting data...
+</span></span><span style="display:flex;"><span>Processed ids in range 1-10000
+</span></span><span style="display:flex;"><span>Processed ids in range 10001-20000
+</span></span><span style="display:flex;"><span>Processed ids in range 20001-30000
+</span></span><span style="display:flex;"><span>Processed ids in range 30001-40000
+</span></span><span style="display:flex;"><span>Processed ids in range 40001-50000
+</span></span><span style="display:flex;"><span>Processed ids in range 50001-60000
+</span></span><span style="display:flex;"><span>Processed ids in range 60001-70000
+</span></span><span style="display:flex;"><span>Processed ids in range 70001-80000
+</span></span><span style="display:flex;"><span>Processed ids in range 80001-90000
+</span></span><span style="display:flex;"><span>Processed ids in range 90001-100000
+</span></span><span style="display:flex;"><span>Processed ids in range 100001-110000
+</span></span><span style="display:flex;"><span>Processed ids in range 110001-120000
+</span></span><span style="display:flex;"><span>Processed ids in range 120001-129971
+</span></span><span style="display:flex;"><span>Elapsed time: 6.0603 seconds
+</span></span><span style="display:flex;"><span>Finished execution!
+</span></span></code></pre></div><p>Just like in the sync case, the Pydantic validation for 130k records completes in ~3 sec, while the async data ingestion completes in ~6 seconds, giving us a roughly 9 second run time. Generally speaking, a coroutine-based async approach as shown above vastly outperforms the sync approach, but in this particular scenario, the async API offers only a marginal improvement. This is likely because, Neo4j doesn&rsquo;t asynchronously merge nodes/edges independently of one another to avoid race conditions in which the client may attempt to merge an edge to a node that doesn&rsquo;t yet exist in the graph.</p>
+<h4 id="-why-use-the-async-api">💡 Why use the async API?</h4>
+<blockquote>
+<p>Although the performance difference in ingesting the full dataset between the sync and async APIs was negligible in this case, it&rsquo;s likely that in a real setting with a much larger dataset, there will be less overhead in communicating with the database, and if using Neo4j alongside an async-friendly framework with FastAPI, it helps to use the async API across the whole code base for readability and ease of maintenance.</p>
+</blockquote>
+<h2 id="inspect-the-graph-via-the-neo4j-browser">Inspect the graph via the Neo4j browser</h2>
+<p>Check that all the nodes and edges are ingested into the graph as follows.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">MATCH</span> (n) <span style="color:#66d9ef">RETURN</span> <span style="color:#66d9ef">DISTINCT</span> LABELS(n) <span style="color:#66d9ef">AS</span> nodeType, <span style="color:#66d9ef">COUNT</span>(n) <span style="color:#66d9ef">as</span> nodeCount
+</span></span></code></pre></div><p>This returns the per-label count of nodes in the graph.</p>
+<pre tabindex="0"><code>╒════════════╤═════════╕
+│nodeType    │nodeCount│
+╞════════════╪═════════╡
+│[&#34;Wine&#34;]    │129971   │
+├────────────┼─────────┤
+│[&#34;Province&#34;]│420      │
+├────────────┼─────────┤
+│[&#34;Person&#34;]  │19       │
+├────────────┼─────────┤
+│[&#34;Country&#34;] │44       │
+└────────────┴─────────┘
+</code></pre><p>Great! All the wine reviews (with each node representing a wine and its metadata) were ingested into the graph! We have 420 provinces around the world from which the wines originate, as well as 44 countries of origin in this dataset. There are also 19 human tasters.</p>
+<p>Here&rsquo;s another Cypher query showing the top-rated Italian wine varieties tasted by our pro, Roger Voss.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">MATCH</span> (wine:Wine)<span style="color:#f92672">-</span>[:IS_FROM_COUNTRY]<span style="color:#f92672">-&gt;</span>(country:Country)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">WHERE</span> country.countryName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Italy&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">WITH</span> wine, country
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">MATCH</span> (wine:Wine)<span style="color:#f92672">-</span>[:TASTED_BY]<span style="color:#f92672">-&gt;</span>(taster:Person)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">WHERE</span> taster.tasterName <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Roger Voss&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">RETURN</span>
+</span></span><span style="display:flex;"><span>    wine.wineID <span style="color:#66d9ef">AS</span> wineID,
+</span></span><span style="display:flex;"><span>    wine.variety <span style="color:#66d9ef">AS</span> variety
+</span></span><span style="display:flex;"><span>    wine.points <span style="color:#66d9ef">AS</span> points,
+</span></span><span style="display:flex;"><span>    wine.title <span style="color:#66d9ef">AS</span> title
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">ORDER</span> <span style="color:#66d9ef">BY</span> points <span style="color:#66d9ef">DESC</span> <span style="color:#66d9ef">LIMIT</span> <span style="color:#ae81ff">5</span>
+</span></span></code></pre></div><p>The following result is obtained:</p>
+<pre tabindex="0"><code>╒══════╤════════════╤══════╤═══════════════════════════════════════════════════════╕
+│wineID│variety     │points│title                                                  │
+╞══════╪════════════╪══════╪═══════════════════════════════════════════════════════╡
+│81398 │&#34;Sangiovese&#34;│95    │&#34;Talenti 1997  Brunello di Montalcino&#34;                 │
+├──────┼────────────┼──────┼────
+│81399 │&#34;Sangiovese&#34;│94    │&#34;Tenuta di Sesta 1997  Brunello di Montalcino&#34;         │
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+│125783│&#34;Tocai&#34;     │93    │&#34;Mario Schiopetto 2001 Tocai (Collio)&#34;                 │
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+│81404 │&#34;Sangiovese&#34;│93    │&#34;Biondi Santi 1997 Il Greppo  (Brunello di Montalcino)&#34;│
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
+│81403 │&#34;Sangiovese───────────────────────────────────────────────────┤&#34;│93    │&#34;La Gerla 1997  Brunello di Montalcino&#34;                │
+└──────┴────────────┴──────┴───────────────────────────────────────────────────────┘
+</code></pre><p>The graph schema modelled is also easy to output in Neo4j:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">CALL</span> db.<span style="color:#66d9ef">schema</span>.visualization
+</span></span></code></pre></div><p><img src="schema.svg" alt=""></p>
+<p>This is exactly the same as the sketch <a href="#the-graph-data-model">shown earlier</a>.</p>
+<h2 id="conclusions">Conclusions</h2>
+<p>Whew, there was a lot covered in this post! As described, it&rsquo;s quite simple to build an efficient and maintainable bulk-insert workflow for Neo4j using just Python as the gluing language. Either the sync or async APIs of the <a href="https://github.com/neo4j/neo4j-python-driver">Neo4j Python client</a> can be used. This official client, maintained by the folks at Neo4j, is under continuous development and is actively maintained, so hopefully, this post gave a useful introduction on how to use it effectively.</p>
+<p>In a future post, I&rsquo;ll describe how I typically build custom query APIs using FastAPI on top of the Neo4j graph, to provide results to front end client downstream. Till next time!</p>
+<h2 id="code">Code</h2>
+<p>All code shown in this post <a href="https://github.com/prrao87/neo4j-python-fastapi">is available on GitHub</a>.</p>
+
+        </p>
+        
+    </div>
+
+    <div class="prev-next">
+        
+    </div>
+</div>
+
+<aside class="post-toc">
+    <nav id="toc">
+        <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#using-pydantic-and-async-python-to-build-a-graph-in-neo4j">Using Pydantic and async Python to build a graph in Neo4j</a></li>
+        <li><a href="#the-data">The data</a></li>
+        <li><a href="#the-graph-data-model">The graph data model</a>
+          <ul>
+            <li><a href="#where-graphs-really-shine">Where graphs really shine</a></li>
+          </ul>
+        </li>
+        <li><a href="#data-ingestion-into-neo4j">Data ingestion into Neo4j</a>
+          <ul>
+            <li><a href="#read-the-data-in-chunks">Read the data in chunks</a>
+              <ul>
+                <li><a href="#-performance-tip">💡 Performance tip</a></li>
+              </ul>
+            </li>
+            <li><a href="#validate-the-data">Validate the data</a>
+              <ul>
+                <li><a href="#-why-enforce-a-schema">💡 Why enforce a schema?</a></li>
+              </ul>
+            </li>
+            <li><a href="#define-build-query">Define build query</a></li>
+            <li><a href="#option-1-sync-loader">Option 1: Sync loader</a>
+              <ul>
+                <li><a href="#sync-run-time-for-full-data-ingestion">Sync run time for full data ingestion</a></li>
+              </ul>
+            </li>
+            <li><a href="#option-2-async-loader">Option 2: Async loader</a>
+              <ul>
+                <li><a href="#async-run-time-for-full-data-ingestion">Async run time for full data ingestion</a></li>
+                <li><a href="#-why-use-the-async-api">💡 Why use the async API?</a></li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li><a href="#inspect-the-graph-via-the-neo4j-browser">Inspect the graph via the Neo4j browser</a></li>
+        <li><a href="#conclusions">Conclusions</a></li>
+        <li><a href="#code">Code</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </nav>
+</aside>
+
+
+
+    
+
+        </main><footer class="footer">
+    
+    
+
+    <span>&copy; 2023 Prashanth Rao</span>
+    <span>
+        Made with &#10084;&#65039; using <a target="_blank" href="https://github.com/526avijitgupta/gokarna">Gokarna</a>
+    </span>
+</footer>
+</body>
+</html>

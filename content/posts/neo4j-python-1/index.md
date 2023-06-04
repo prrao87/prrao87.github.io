@@ -67,7 +67,7 @@ This seems like a reasonable enough question. But the problem is, our dataset is
 
 Our human minds tend to see the real world as hierarchies of concepts and entities, and graphs, due to their inherent "connected" nature, make it very easy to reason about the data model that can help us answer a given question. With this in mind, the following graph model makes sense.
 
-![](/images/neo4j-python-1/data_model.png)
+![](data_model.png)
 
 We can view each JSON blob as a `Wine` node, that connects to a `Person` node, where the `Person` is a taster. In addition, each wine is also connected to a `Country` node and a `Province` node, with each type of location indicating where the wine originates. In addition, a `Province` can be located in a `Country`, but not the other way around. The above data model encapsulates all of these real-world relationships nicely, capturing both the *nature* and the *direction* of the relationship, and as an added bonus, makes querying a lot easier as well.
 
@@ -489,7 +489,7 @@ The graph schema modelled is also easy to output in Neo4j:
 CALL db.schema.visualization
 ```
 
-![](/images/neo4j-python-1/schema.svg)
+![](schema.svg)
 
 This is exactly the same as the sketch [shown earlier](#the-graph-data-model).
 

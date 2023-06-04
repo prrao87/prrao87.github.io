@@ -41,7 +41,7 @@ pygmentsStyle = "monokai"
     {name = "linkedin", url = "https://www.linkedin.com/in/prrao87"},
     {name = "stackoverflow", url = "https://stackoverflow.com/users/1194761/prrao"},
   ]
-  metaKeywords = ["blog", "data-engineering", "database", "python"]
+  metaKeywords = ["blog", "data-engineering", "database", "python", "fastapi"]
   showPostsOnHomePage = "recent"
 
 [menu]
@@ -50,6 +50,12 @@ pygmentsStyle = "monokai"
     pre = "<span data-feather='home'></span>"
     url = "/"
     weight = 1
+
+  [[menu.main]]
+    name = "About me"
+    pre = "<span data-feather='user'></span>"
+    url = "/about/"
+    weight = 2
 
   [[menu.main]]
     name = "Posts"
