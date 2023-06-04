@@ -3,3 +3,4 @@ geckodriver.log
 .idea/
 .hugo_build.lock
 .vscode
+public/*
