@@ -16,23 +16,13 @@ tags:
 
 This is the second part of a series on Neo4j for Pythonistas, in which we will go through and end-to-end engineering workflow to build and analyze graph data in Neo4j using Python. [Part 1 of this series](https://thedataquarry.com/posts/neo4j-python-1/) covered what the data was, how it was ingested into a Neo4j graph and how it was validated in Pydantic prior to building the graph in Neo4j. If all of that is familiar to you, read on!
 
+> 🚂 If you like reading code directly and want to see the FastAPI codebase for this post, [go straight to `src/api` in this repo](https://github.com/prrao87/neo4j-python-fastapi/tree/main)!
+
 ### Why build a REST API?
 
 This might come across as a strong opinion, but I believe that you, as the data engineer who has gained deep familiarity with the data at hand, have the moral responsibility to ensure that it's made available to end users in the most convenient way possible. In most cases, the end user or "consumer" of the data would be a front-end or full stack developer responsible for building a client-facing application for a business case. An API layer that sits between the database (server) and the front end (client) application is ideally suited for this purpose -- it allows a database/backend engineer to ensure that the data being stored is being queried, and most importantly, _served_ to the client as necessary to deliver the most value to the business unit that builds the application.
 
-![](api_design.jpeg)
-
-#### RESTful API architectural constraints
-
-A web service that uses a RESTful API relies on a client-server architecture, where the data access, workload and CPU-intensive processing, and security are in the domain of the _server_, whereas the _client_ simply fetches the data (as valid JSON) and renders it on the front end. The architectural constraints for a RESTful API were first stated by Roy Fielding in his 2000 doctoral thesis, some of which are summarized below.
-
-- __Uniform interface__: The resources inside the system should be exposed to API consumers using a uniform and consistent interface, i.e., through the use of "endpoints", such as `GET`, `POST`, `PUT` and `DELETE`.
-- __Client-server architecture__: The data access, workload, CPU-intensive processing and security are the server's responsibility, whereas the client simply fetches the data (as valid JSON) and renders it on the front end.
-- __Stateless__: All client-server interactions are stateless. The client is solely responsible for managing the state of the application, and no context is stored on the server between requests.
-- __Cacheable__: Client-server interactions can (and should) be cached to improve scalability and performance
-- __Layering__: The data and the API can be deployed on completely different servers, and the client will not be able to tell whether it is connected directly to the end server or multiple other servers along the way.
-
-The output of each REST endpoint is valid JSON, which can then be consumed by the client to render on the front end as desired. With that bit of background out of the way, let's look at how to build a REST API on top of the Neo4j database using FastAPI!
+![](api_design.jpeg)!
 
 ## A quick recap on the data
 
@@ -116,7 +106,7 @@ Note that the URI for the Neo4j browser isn't `localhost` as is normally the cas
 
 ### Create routers
 
-[As mentioned in the FastAPI docs](https://fastapi.tiangolo.com/tutorial/bigger-applications/), there are multiple ways to structure your application directories. There's no one "right" way to structure a large application with multiple end points, but, after some experimenting, I've narrowed down on the structure below that works well for a variety of use cases.
+[As mentioned in the FastAPI docs](https://fastapi.tiangolo.com/tutorial/bigger-applications/), there are multiple ways to structure your application directories. There's no one "right" way to structure a large application with multiple end points, but, after some experimenting, I find that the structure shown below works really well for a variety of use cases, allowing for easy extensibility by myself or other developers.
 
 ```sh
 └── src
@@ -131,8 +121,140 @@ Note that the URI for the Neo4j browser isn't `localhost` as is normally the cas
 
 In FastAPI terminology, a "route" is a pathway to a set of endpoints that answer specific kinds of queries -- these are grouped together and stored under the `routers` directory. FastAPI relies on Pydantic for model validation, so, just like in the case with data ingestion, we specify a REST schema in the `schemas` directory.
 
-The `rest..py` router file contains the following:
+The `rest.py` router file contains the following general layout.
 
 ```py
+from fastapi import APIRouter, HTTPException, Query, Request
+from neo4j import AsyncManagedTransaction
+from src.schemas.response import ResponseModel
 
+router = APIRouter()
+
+# --- Routes ---
+
+@router.get("/search", response_model=ResponseModel)
+async def search_by_keywords(
+    request: Request,
+    terms: str,
+    max_price: float = 100.0
+) -> list[ResponseModel] | None:
+    session = request.app.session
+    result = await session.execute_read(_search_by_keywords, terms, max_price)
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No wine with the provided terms '{terms}' found in database - please try again",
+        )
+    return result
+
+
+# --- Neo4j query funcs ---
+
+async def _search_by_keywords(
+    tx: AsyncManagedTransaction,
+    terms: str,
+    price: float,
+) -> list[FullTextSearch] | None:
+    query = """
+        CALL db.index.fulltext.queryNodes("searchText", $terms) YIELD node AS wine, score
+        WITH DISTINCT wine, score
+            MATCH (wine)-[:IS_FROM_COUNTRY]->(c:Country)
+            WHERE wine.price <= $price
+        RETURN
+            c.countryName AS country,
+            wine.wineID AS wineID,
+            wine.points AS points,
+            wine.title AS title,
+            wine.description AS description,
+            coalesce(wine.price, "Not available") AS price,
+            wine.variety AS variety,
+            wine.winery AS winery
+        ORDER BY score DESC, points DESC LIMIT 5
+    """
+    response = await tx.run(query, terms=terms, price=price)
+    result = await response.data()
+    if result:
+        return [FullTextSearch(**r) for r in result]
+    return None
 ```
+
+Note the clear separation between the _endpoint_ logic and the _query_ logic. The initial portion of the file `rest.py` contains the definition of the endpoint query parameters, and the read query is executed via the FastAPI request's database session object. Because FastAPI itself relies on Pydantic, a response model must be specified. For this example, the same directory that hosts the Pydantic schema for data ingestion is reused, but in practice, the schema directory from which the response model is called can reside at the same level as `main.py`.
+
+The latter portion of `rest.py` contains the an example full text search query that queries the Neo4j database's full text index with the user's keyword terms.
+
+More endpoints can be added this way, depending on the kinds of questions the end user may want to ask of the database.
+
+### Run the API via Docker
+
+
+<Add docker description here>
+
+
+### Test endpoint
+
+It's quite easy to test out a search query via an HTTP request (or, alternatively, open the OpenAPI docs and test the endpoint interactively, [as shown below](#api-docs)).
+
+We pass a simple search query with the terms `tuscany red` with a max price of 50 to a cURL request as follows.
+
+```sh
+curl -X 'GET' \
+  'http://localhost:8000/wine/search?terms=tuscany%20red&max_price=50'
+```
+
+The search terms and filter specified in the request are converted to a working Cypher query in the FastAPI router file. The query runs and retrieves results from a full text search index (that looks for these keywords in t
+
+```json
+[
+    {
+        "wineID": 66393,
+        "country": "Italy",
+        "title": "Capezzana 1999 Ghiaie Della Furba Red (Tuscany)",
+        "description": "Very much a baby, this is one big, bold, burly Cab-Merlot-Syrah blend that's filled to the brim with extracted plum fruit, bitter chocolate and earth. It takes a long time in the glass for it to lose its youthful, funky aromatics, and on the palate things are still a bit scattered. But in due time things will settle and integrate",
+        "points": 90,
+        "price": 49,
+        "variety": "Red Blend",
+        "winery": "Capezzana"
+    },
+    {
+        "wineID": 40960,
+        "country": "Italy",
+        "title": "Fattoria di Grignano 2011 Pietramaggio Red (Toscana)",
+        "description": "Here's a simple but well made red from Tuscany that has floral aromas of violet and rose with berry notes. The palate offers bright cherry, red currant and a touch of spice. Pair this with pasta dishes or grilled vegetables.",
+        "points": 86,
+        "price": 11,
+        "variety": "Red Blend",
+        "winery": "Fattoria di Grignano"
+    },
+    {
+        "wineID": 73595,
+        "country": "Italy",
+        "title": "I Giusti e Zanza 2011 Belcore Red (Toscana)",
+        "description": "With aromas of violet, tilled soil and red berries, this blend of Sangiovese and Merlot recalls sunny Tuscany. It's loaded with wild cherry flavors accented by white pepper, cinnamon and vanilla. The palate is uplifted by vibrant acidity and fine tannins.",
+        "points": 89,
+        "price": 27,
+        "variety": "Red Blend",
+        "winery": "I Giusti e Zanza"
+    }
+]
+```
+
+Not bad! This example correctly returns some highly rated Tuscan red wines along with their price and country of origin, Italy.
+
+### Extend the API
+
+With this design, the REST API can be easily extended to add more functionality and endpoints as needed. It's generally good practice to organize endpoints that are related to a particular functionality in a single file, and then reference the router by its name in `main.py`.
+
+* The `schemas` directory houses the Pydantic schemas, both for the data input as well as for the endpoint outputs
+  * As the data model gets more complex, we can add more files and separate the ingestion logic from the API logic here
+* The `api/routers` directory contains the endpoint routes so that we can provide additional endpoint that answer more business questions
+  * For e.g.: "What are the top rated wines from Argentina?"
+  * In general, it makes sense to organize specific business use cases into their own router files
+* The `api/main.py` file collects all the routes and schemas to run the API
+
+
+### API docs
+
+The great thing about FastAPI is that you get API docs for free, via the OpenAPI spec. With the Docker containers up and running, navigate to `localhost:8000/docs` to see the existing endpoints defined in this example.
+
+![](api_docs.png)
+
