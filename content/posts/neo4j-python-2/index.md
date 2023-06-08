@@ -57,25 +57,33 @@ A `:Wine` is from a province and a country, with the province itself belonging t
 
 Once the data is ingested into Neo4j (see [part 1](https://thedataquarry.com/posts/neo4j-python-1/) regarding sync and async methods to ingest data via Python), we can proceed to build an API layer on top of the database. As is most common these days, [FastAPI](https://fastapi.tiangolo.com) is the framework used to build performance, async-friendly APIs in Python. Note that all code in the following sections is available in [this GitHub repo](https://github.com/prrao87/neo4j-python-fastapi).
 
-### Test a dummy endpoint
+### Run the API and database via Docker
 
-Install FastAPI using `pip install fastapi` in a virtual environment. A dummy endpoint can be tested to check that the install worked as intended, by saving the snippet below in a file called `main.py` and running it.
+The `docker-compose.yml` [provided in the repo](https://github.com/prrao87/neo4j-python-fastapi) initiates two separate services that run in their own containers: one that runs Neo4j, and another one that serves a REST API (written in FastAPI) on top of the database.
 
-```py
-from fastapi import FastAPI
-
-app = FastAPI()
-
-@app.get("/")
-def root():
-    return {"Hello world"}
+```sh
+docker compose up -d
 ```
 
-Opening `http://localhost:8000` should display the "Hello world" message on the browser. We're all set to build out our Neo4j database connection!
+This compose file starts a persistent-volume Neo4j database with credentials specified in `.env`. Both containers can communicate with one another with the common network that they share, on the exact port numbers specified in the environment file.
+
+The services can be stopped at any time using the following command.
+
+```sh
+docker compose down
+```
+
+Opening `http://localhost:8000` should display a message as shown below on the browser.
+
+```json
+"message": "REST API for querying Neo4j database of 130k wine reviews from the Wine Enthusiast magazine"
+```
+
+We're all set to build out our Neo4j database connection!
 
 ### Create an async lifespan
 
-FastAPI `0.95.0` introduced a clean interface to set up async interfaces to databases. This is done by using the `asynccontextmanager` decorator available as part of the `contextlib` standard library in Python.
+FastAPI `0.95.0` introduced a cleaner, simpler interface to set up async interfaces to databases. This is done by using the `asynccontextmanager` decorator available as part of the `contextlib` standard library in Python.
 
 ```py
 from contextlib import asynccontextmanager
@@ -184,24 +192,36 @@ The latter portion of `rest.py` contains the an example full text search query t
 
 More endpoints can be added this way, depending on the kinds of questions the end user may want to ask of the database.
 
-### Run the API via Docker
+### Attach endpoints in the router to `main.py`
 
+We can then attach the endpoints in the router defined in `rest.py` to the FastAPI server in `main.py` below the lifespan object specification as follows:
 
-<Add docker description here>
+```py
 
+app = FastAPI(lifespan=lifespan)
+
+# Attach routes
+app.include_router(rest.router, prefix="/v1/rest", tags=["rest"])
+```
+
+As per the statement above, we serve the endpoints for the REST API with the route prefix `/v1/rest`, so the endpoint can be reached at the following URL:
+
+```
+https://localhost:8000/v1/rest/search
+```
+💡 __Best practice__
+> It's good practice to set a prefix to the router, for e.g., `/v1/rest` to indicate the version of the API and the fact that it's a REST API. The version number specifies to users and developers which version of the API they are calling (in case there are breaking changes in the future).
 
 ### Test endpoint
 
-It's quite easy to test out a search query via an HTTP request (or, alternatively, open the OpenAPI docs and test the endpoint interactively, [as shown below](#api-docs)).
-
-We pass a simple search query with the terms `tuscany red` with a max price of 50 to a cURL request as follows.
+Pass a simple search query with the terms `tuscany red` with a max price of 50 to a cURL request as follows.
 
 ```sh
 curl -X 'GET' \
-  'http://localhost:8000/wine/search?terms=tuscany%20red&max_price=50'
+  'http://localhost:8000/v1/rest/search?terms=tuscany%20red&max_price=50'
 ```
 
-The search terms and filter specified in the request are converted to a working Cypher query in the FastAPI router file. The query runs and retrieves results from a full text search index (that looks for these keywords in t
+The search terms and filter specified in the request are converted to a working Cypher query in the FastAPI router file. The query runs and retrieves results from a full text search index (that looks for these keywords in the title and variety of the sample).
 
 ```json
 [
@@ -257,4 +277,6 @@ With this design, the REST API can be easily extended to add more functionality 
 The great thing about FastAPI is that you get API docs for free, via the OpenAPI spec. With the Docker containers up and running, navigate to `localhost:8000/docs` to see the existing endpoints defined in this example.
 
 ![](api_docs.png)
+
+## Conclusions
 
