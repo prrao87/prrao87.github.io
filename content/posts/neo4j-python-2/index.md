@@ -2,7 +2,7 @@
 type: "post"
 title: "Neo4j for Pythonistas: Part 2"
 date: 2023-06-04T10:19:46-04:00
-draft: true
+draft: false
 showTableOfContents: true
 tags:
 - python
@@ -20,7 +20,7 @@ This is the second part of a series on Neo4j for Pythonistas, in which we will g
 
 ### Why build a REST API?
 
-This might come across as a strong opinion, but I believe that you, as the data engineer who has gained deep familiarity with the data at hand, have the moral responsibility to ensure that it's made available to end users in the most convenient way possible. In most cases, the end user or "consumer" of the data would be a front-end or full stack developer responsible for building a client-facing application for a business case. An API layer that sits between the database (server) and the front end (client) application is ideally suited for this purpose -- it allows a database/backend engineer to ensure that the data being stored is being queried, and most importantly, _served_ to the client as necessary to deliver the most value to the business unit that builds the application.
+Data engineers typically build data-handling and ETL pipelines to ingest large amounts of data into a database. However, for the true value of the data to be realized, it's also important that the data is made available to end users (i.e., "consumers") in the most convenient way possible. In most cases, the consumer would be a front-end or full stack developer responsible for building a client-facing application for a business case. An API layer that sits between the database (server) and the front end (client) application is ideally suited for this purpose -- it allows a database/backend engineer to ensure that the data being stored is being queried, and most importantly, _served_ to the client as necessary to deliver the most value to the business unit that builds the application.
 
 ![](api_design.jpeg)!
 
@@ -279,4 +279,29 @@ The great thing about FastAPI is that you get API docs for free, via the OpenAPI
 ![](api_docs.png)
 
 ## Conclusions
+
+Building a FastAPI app on top of a Neo4j database can be a lot of fun, once you know the basics! Although a lot of the content in this post requires a bit of prior knowledge of how APIs work, the REST spec, etc., it's easy to appreciate why exposing the data in your graph database via a REST API makes a lot of sense. Developing using Docker also makes the entire process much more reproducible and easier to debug.
+
+### Benefits of FastAPI and APIs in general
+
+- __Ease of transmission__: The API acts as a bridge between the query layer (Cypher) and the user (front-end), so your end users don't need to know any Cypher to get the data they want!
+- __Scalability__: As the number of users sending queries to the graph increases, frameworks like FastAPI efficiently handle async connections, best utilizing your CPU resources in a non-blocking manner
+- __Security__: Rather than exposing the database to anybody out there, FastAPI provides [middleware options](https://fastapi.tiangolo.com/tutorial/middleware/) and [authentication methods](https://fastapi.tiangolo.com/tutorial/security/) to control who gets access to the data
+- __Control__: The consumer of the data only sees what you, the backend engineer expose to them! For example, if we do not want to expose the name of a person to the consumer, we can set up the endpoint that way in the API layer upfront.
+
+### A common downside to REST APIs
+
+A common problem with RESTful APIs is that, in case a user wants a subset or a superset of the data exposed by an endpoint, they cannot change the request in a way that lets them fetch only what they want. As a result, it's common for RESTful endpoints to over-fetch data that the user doesn't need, or under-fetch data that they might need, and the only way to address this need is for the backend developer to define a new endpoint.
+
+To address this issue, a different kind of API called [GraphQL](https://stablekernel.com/article/advantages-and-disadvantages-of-graphql/) was introduced. In a future post, I'll go over how to build a GraphL API on top of Neo4j using FastAPI and [Strawberry](https://strawberry.rocks/) 🍓. Hope this was a useful read!
+
+As always, the code for this post [is available on GitHub](https://github.com/prrao87/neo4j-python-fastapi).
+
+## Additional learning
+
+Here are some nice tutorials that helped me get up and running with Docker and FastAPI.
+
+1. Learn how to set up a great dev environment in Docker ([Video by Patrick Loeber on YouTube](https://www.youtube.com/watch?v=0H2miBK_gAk&t=1s))
+2. FastAPI docs [intro tutorial by Sebastian Ramirez](https://fastapi.tiangolo.com/lo/tutorial/)
+
 
