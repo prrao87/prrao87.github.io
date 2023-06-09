@@ -9,6 +9,9 @@ enableRobotsTXT = true
 # Choose one of emacs, trac or perldoc
 pygmentsStyle = "native"
 
+[cover]
+  hidden = false # hide everywhere but not in structured data
+
 [params]
   footer = "Prashanth Rao"
   description = "Databases, APIs and everything in between"

@@ -4,6 +4,8 @@ title: "Neo4j for Pythonistas: Part 2"
 date: 2023-06-04T10:19:46-04:00
 draft: false
 showTableOfContents: true
+cover:
+  image: api_design.jpeg
 tags:
 - python
 - neo4j
@@ -22,7 +24,7 @@ This is the second part of a series on Neo4j for Pythonistas, in which we will g
 
 Data engineers typically build data-handling and ETL pipelines to ingest large amounts of data into a database. However, for the true value of the data to be realized, it's also important that the data is made available to end users (i.e., "consumers") in the most convenient way possible. In most cases, the consumer would be a front-end or full stack developer responsible for building a client-facing application for a business case. An API layer that sits between the database (server) and the front end (client) application is ideally suited for this purpose -- it allows a database/backend engineer to ensure that the data being stored is being queried, and most importantly, _served_ to the client as necessary to deliver the most value to the business unit that builds the application.
 
-![](api_design.jpeg)!
+![](api_design.jpeg)
 
 ## A quick recap on the data
 
