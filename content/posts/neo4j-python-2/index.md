@@ -5,7 +5,7 @@ date: 2023-06-04T10:19:46-04:00
 draft: false
 showTableOfContents: true
 cover:
-  image: api_design.jpeg
+  image: /neo4j-python-2-cover.jpeg
 tags:
 - python
 - neo4j
