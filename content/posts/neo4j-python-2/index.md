@@ -15,7 +15,7 @@ tags:
 
 ## Build a RESTful API on top of a Neo4j graph
 
-This is the second part of a series on Neo4j for Pythonistas, in which we will go through and end-to-end engineering workflow to build and analyze graph data in Neo4j using Python. [Part 1 of this series](https://thedataquarry.com/posts/neo4j-python-1/) covered what the data was, how it was ingested into a Neo4j graph and how it was validated in Pydantic prior to building the graph in Neo4j. If all of that is familiar to you, read on!
+This is the second part of a series on Neo4j for Pythonistas, in which we will go through an end-to-end workflow to build and analyze graph data in Neo4j using Python. [Part 1 of this series](https://thedataquarry.com/posts/neo4j-python-1/) covered what the data was, how it was validated in Pydantic, and how it was ingested into Neo4j. If all of that is familiar to you, read on!
 
 > 🚂 If you like reading code directly and want to see the FastAPI codebase for this post, [go straight to `src/api` in this repo](https://github.com/prrao87/neo4j-python-fastapi/tree/main)!
 
