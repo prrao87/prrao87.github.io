@@ -4,8 +4,7 @@ title: "Neo4j for Pythonistas: Part 2"
 date: 2023-06-04T10:19:46-04:00
 draft: false
 showTableOfContents: true
-cover:
-  image: /neo4j-python-2-cover.jpeg
+image: "/static/images/neo4j-python-2-cover.jpeg"
 tags:
 - python
 - neo4j
