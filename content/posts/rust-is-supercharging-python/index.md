@@ -4,7 +4,7 @@ title: "Rust is supercharging Python from the ground up: Let's all embrace it"
 date: 2023-06-15T14:40:42-04:00
 draft: false
 showTableOfContents: true
-image: "/images/tributaries.jpg"
+image: "/images/tributaries.png"
 tags: ["rust", "data-engineering", "databases"]
 ---
 
