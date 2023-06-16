@@ -54,7 +54,7 @@ It's hard to overstate the importance of one particular Rust crate, [PyO3](https
 
 ### How PyO3 gives Python package developers superpowers
 
-PyO3 can be used to generate a native Python module from native Rust bindings. This is done on the Python side by using the [`maturin`](https://github.com/PyO3/maturin). As of June 2023, this package has been [downloaded more than 9 million times](https://pepy.tech/project/maturin?display=monthly) via the Python package index. `maturin` allows users who know (or are learning) Rust to easily export bindings and publish them as Python packages so the larger Python community can benefit from the performance of the underlying Rust code. To see how simple it is to set up, see [the PyO3 Rust crates page](https://crates.io/crates/pyo3) for details.
+PyO3 can be used to generate a native Python module from native Rust bindings. This is done on the Python side by using the [`maturin`](https://github.com/PyO3/maturin) package. As of June 2023, this package has been [downloaded more than 9 million times](https://pepy.tech/project/maturin?display=monthly) via the Python package index. `maturin` allows users who know (or are learning) Rust to easily export bindings and publish them as Python packages so the larger Python community can benefit from the performance of the underlying Rust code. To see how simple it is to set up, see [the PyO3 Rust crates page](https://crates.io/crates/pyo3) for details.
 
 The following blog post's title is self-explanatory, and does a great job of highlighting how and why PyO3 + `maturin` bring a whole community of Rust and  Python developers together.
 
@@ -122,15 +122,23 @@ As of writing this post, v2 of Pydantic hasn't officially been released, but [as
 
 More recently, the Delta Lake open source format has been popular for cases that need both offline and online data (i.e., when streaming is involved). The `delta-rs` Rust project provided the foundation for this framework, allowing the development of the [Python Delta Lake library](https://delta-io.github.io/delta-rs/python/). As described in the video linked below, "not everything needs a Spark cluster" 😀.
 
+{{< youtube scYz12UK-OY >}}
+
+## Daft
+
+I've only recently learned of a new distributed DataFrame library, [Daft](https://github.com/Eventual-Inc/Daft), which is of course written in Rust. If you've ever used Dask before to parallelize operations on Pandas DataFrames, Daft seems to be doing this on steroids. Just like more of the other projects, Daft also builds on the Arrow data specification, and allows data scientists to effectively handle multi-modal data and process them efficiently via a DataFrame, with the option of seamlessly moving from a single machine to a distributed cluster (leveraging the [Ray](https://github.com/ray-project/ray) framework).
+
+The following [integrations are offered by Daft](https://www.getdaft.io/), making the Rust-powered data science ecosystem in Python a better place overall!
+
+![](daft_integrations.png)
+
 ## Gathering the pieces
 
 Now that the background has been laid, we can visualize how the pieces of the underlying ecosystem fall in place as follows.
 
 ![](tools.jpeg)
 
-A mature ecosystem of crates (i.e., packages) in the Rust ecosystem coupled with a developer-friendly distribution framework like PyO3 and `maturin` allowed an explosion of foundational libraries that will power the next generation of software in the PyData ecosystem. The centralization around developer tooling and specification, namely Arrow, and the fact that they're all written in Rust allow for downstream base libraries like DataFusion (and soon Ballista) to offer distributed computing capabilities that will have a much lower memory footprint and consume far less resources (while much more efficiently using available resources), leading to a blazing fast 🔥 replacement to Spark in the PyData ecosystem.
-
-{{< youtube scYz12UK-OY >}}
+A mature ecosystem of crates (i.e., packages) in the Rust ecosystem coupled with a developer-friendly distribution framework like PyO3 and `maturin` allow an explosion of foundational libraries that will power the next generation of software in the PyData ecosystem. The centralization around developer tooling and specification, namely Arrow, and the fact that these tools are written in Rust allow for downstream libraries like DataFusion, Ballista and Daft to offer distributed computing capabilities that will have a much lower memory footprint and consume far less resources (while much more efficiently using available resources), leading to blazing fast 🔥 data processing in the PyData ecosystem.
 
 ## Conclusions
 
@@ -138,11 +146,13 @@ Between 2018-2022, there have been multiple key developments in the Rust and PyD
 
 * EDA and data transformation in Polars
 * Data validation in Pydantic
+* Process data in DataFrames using the full power of your local machine on multiple threads or cores, via Polars or Daft + Ray
 * Store the data and query it in a variety of Rust-powered databases:
   * [Meilisearch](https://github.com/meilisearch/meilisearch) (scalar search with typo-tolerance and search-as-you-type speed 🔥)
   * [Qdrant](https://github.com/qdrant/qdrant) (vector search using a client-server architecture)
   * [LanceDB](https://github.com/lancedb/lancedb) (multimodal vector search on an embedded DB with a serverless architecture)
 * Transform data into Arrow tables and move it between your local machine, a database or a data lake (which may be written in entirely other languages like Golang or C++)
+
 
 Now, imagine the power of a future Rust-powered Spark (whatever it will be called) built on DataFusion + Ballista, and being able to seamlessly switch between running your analysis on a single core on your local machine, or in a distributed fashion on a huge cluster. The thought of that (and never having to debug a JVM stack trace ever again) will make data scientists and engineers dance with joy! 🕺💃
 
