@@ -1,16 +1,7 @@
 ---
-type: "post"
 title: "Neo4j for Pythonistas: Part 1"
-date: 2023-05-22T21:29:09-04:00
-draft: false
-showTableOfContents: true
-tags:
-- python
-- neo4j
-- async
-- pydantic
-- knowledge-graphs
-- data-engineering
+date: 2023-05-22
+tags: ["python", "neo4j", "async", "pydantic", "knowledge-graphs", "data-engineering"]
 ---
 
 ## Using Pydantic and async Python to build a graph in Neo4j
@@ -61,13 +52,15 @@ Inspecting the JSON sample above, we can see that there is not only a rating and
 
 The reason that graph databases are _really_ useful in certain situations is best illustrated with an example. Imagine you're building a query API for wine enthusiasts that follow wine reviewers on Twitter. Suppose these end users are interested the following question:
 
-> _"Which wine varieties have been most often tasted by my favourite reviewer, Roger Voss, and what countries are those wines from"?_
+{{< notice question >}}
+*"Which wine varieties have been most often tasted by my favourite reviewer, Roger Voss, and what countries are those wines from"?*
+{{< /notice >}}
 
-This seems like a reasonable enough question. But the problem is, our dataset is in the form of individual JSON blobs (as shown above), where each wine reviewer's name and Twitter handle is associated with a *single* wine, and the reviewer's name appears many, many times over the entire dataset. A conventional NoSQL data store (like MongoDB) would require an aggregation query [built as a pipeline](https://www.mongodb.com/docs/manual/core/aggregation-pipeline/) to answer this question, where it would first calculate the number of wines tasted by a person, apply the necessary grouping clauses to gather the wine variety and the country of origin, and finally return the answer. Not only is this approach computationally expensive as the dataset gets larger and larger, it's also *exceptionally unintuitive* to us as human beings to reason about.
+This seems reasonable enough. But the problem is, our dataset is in the form of individual JSON blobs (as shown above), where each wine reviewer's name and Twitter handle is associated with a *single* wine, and the reviewer's name appears many, many times over the entire dataset. A conventional NoSQL data store (like MongoDB) would require an aggregation query [built as a pipeline](https://www.mongodb.com/docs/manual/core/aggregation-pipeline/) to answer this question, where it would first calculate the number of wines tasted by a person, apply the necessary grouping clauses to gather the wine variety and the country of origin, and finally return the answer. Not only is this approach computationally expensive as the dataset gets larger and larger, it's also *exceptionally unintuitive* to us as human beings to reason about.
 
 Our human minds tend to see the real world as hierarchies of concepts and entities, and graphs, due to their inherent "connected" nature, make it very easy to reason about the data model that can help us answer a given question. With this in mind, the following graph model makes sense.
 
-![](data_model.png)
+{{< figure src="data_model.png" >}}
 
 We can view each JSON blob as a `Wine` node, that connects to a `Person` node, where the `Person` is a taster. In addition, each wine is also connected to a `Country` node and a `Province` node, with each type of location indicating where the wine originates. In addition, a `Province` can be located in a `Country`, but not the other way around. The above data model encapsulates all of these real-world relationships nicely, capturing both the *nature* and the *direction* of the relationship, and as an added bonus, makes querying a lot easier as well.
 
@@ -121,9 +114,11 @@ With that bit of background out of the way, let's look at how to build such a gr
 
 To get the best performance (as the [Neo4j official Cypher docs](https://neo4j.com/docs/python-manual/current/performance/)), we read the data in batches of 10k-25k records, and make use of `WITH` and `UNWIND` clauses in Cypher to expand a given list of JSON blobs into individual records before ingesting them into Neo4j.
 
-#### 💡 Performance tip
-> For best performance, always aim to pass a large chunk of JSON blobs (i.e., in Python-speak, a "list of dicts") to your ingestion function and `UNWIND` them in Cypher, rather than passing each JSON blob individually. This minimizes the I/O overhead between Python and Neo4j.
+{{< notice tip >}}
+For best performance, always aim to pass a large chunk of JSON blobs (i.e., in Python-speak, a *list of dicts*) to your ingestion function and `UNWIND` them in Cypher, rather than passing each JSON blob individually. This minimizes the I/O overhead between Python and Neo4j.
+{{< /notice >}}
 
+The following code does this:
 
 ```python
 import srsly
@@ -154,7 +149,13 @@ This snippet shows how to read data from a `.jsonl.gz` file using [srsly](https:
 
 ### Validate the data
 
-A Pydantic schema is created to ensure specific fields exists and that the data is of the expected type prior to passing it to the Neo4j graph. As can be seen below, we state via the Pydantic schema that the fields `id`, `points` and `title` are required fields, and in case they are absent in the data, Pydantic will raise an error, not allowing the record to be ingested to the database.
+A Pydantic schema is created to ensure specific fields exists and that the data is of the expected type prior to passing it to the Neo4j graph.
+
+{{< notice info >}}
+Even though Neo4j doesn't enforce schemas, it's generally a good practice to specify a schema via an external framework like Pydantic, with the appropriate data types in a production scenario so that there are no unintended bugs during ingestion, or while querying the data.
+{{< /notice >}}
+
+As can be seen below, we state via the Pydantic schema that the fields `id`, `points` and `title` are required fields, and in case they are absent in the data, Pydantic will raise an error, not allowing the record to be ingested to the database.
 
 ```python
 from pydantic import BaseModel, Field, validator
@@ -184,11 +185,6 @@ class Wine(BaseModel):
             return "Unknown"
         return value
 ```
-
-#### 💡 Why enforce a schema?
-
-> Even though Neo4j doesn't enforce schemas, it's generally a good practice to specify a schema via an external framework like Pydantic, with the appropriate data types in a production scenario so that there are no unintended bugs during ingestion, or while querying the data.
-
 
 ### Define build query
 
@@ -316,7 +312,9 @@ The following key steps are performed in sequence:
 
 #### Sync run time for full data ingestion
 
-> 💡 The timing numbers shown below are from an M2 Macbook Pro, running Python 3.11 and Neo4j 5.7..0 via Docker.
+{{< notice info >}}
+The timing numbers shown below are from an M2 Macbook Pro, running Python 3.11 and Neo4j 5.7..0 via Docker.
+{{< /notice >}}
 
 ```sh
 $ python bulk_ingest_sync.py
@@ -419,9 +417,10 @@ Finished execution!
 
 Just like in the sync case, the Pydantic validation for 130k records completes in ~3 sec, while the async data ingestion completes in ~6 seconds, giving us a roughly 9 second run time. Generally speaking, a coroutine-based async approach as shown above vastly outperforms the sync approach, but in this particular scenario, the async API offers only a marginal improvement. This is likely because, Neo4j doesn't asynchronously merge nodes/edges independently of one another to avoid race conditions in which the client may attempt to merge an edge to a node that doesn't yet exist in the graph.
 
-
-#### 💡 Why use the async API?
-> Although the performance difference in ingesting the full dataset between the sync and async APIs was negligible in this case, it's likely that in a real setting with a much larger dataset, there will be less overhead in communicating with the database, and if using Neo4j alongside an async-friendly framework with FastAPI, it helps to use the async API across the whole code base for readability and ease of maintenance.
+{{< notice question >}}
+**Why use the async API?**  
+Although the performance difference in ingesting the full dataset between the sync and async APIs was negligible in this case, it's likely that in a real setting with a much larger dataset, there will be less overhead in communicating with the database, and if using Neo4j alongside an async-friendly framework with FastAPI, it helps to use the async API across the whole code base for readability and ease of maintenance.
+{{< /notice >}}
 
 ## Inspect the graph via the Neo4j browser
 
@@ -472,14 +471,14 @@ The following result is obtained:
 │wineID│variety     │points│title                                                  │
 ╞══════╪════════════╪══════╪═══════════════════════════════════════════════════════╡
 │81398 │"Sangiovese"│95    │"Talenti 1997  Brunello di Montalcino"                 │
-├──────┼────────────┼──────┼────
+├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
 │81399 │"Sangiovese"│94    │"Tenuta di Sesta 1997  Brunello di Montalcino"         │
 ├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
 │125783│"Tocai"     │93    │"Mario Schiopetto 2001 Tocai (Collio)"                 │
 ├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
 │81404 │"Sangiovese"│93    │"Biondi Santi 1997 Il Greppo  (Brunello di Montalcino)"│
 ├──────┼────────────┼──────┼───────────────────────────────────────────────────────┤
-│81403 │"Sangiovese───────────────────────────────────────────────────┤"│93    │"La Gerla 1997  Brunello di Montalcino"                │
+│81403 │"Sangiovese"│93    │"La Gerla 1997  Brunello di Montalcino"                │
 └──────┴────────────┴──────┴───────────────────────────────────────────────────────┘
 ```
 
@@ -489,7 +488,8 @@ The graph schema modelled is also easy to output in Neo4j:
 CALL db.schema.visualization
 ```
 
-![](schema.svg)
+{{< figure src="schema.svg" >}}
+
 
 This is exactly the same as the sketch [shown earlier](#the-graph-data-model).
 

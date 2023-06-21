@@ -1,9 +1,6 @@
 ---
-type: "post"
-title: "Rust is supercharging Python from the ground up: Let's all embrace it"
-date: 2023-06-15T14:40:42-04:00
-draft: false
-showTableOfContents: true
+title: "Rust is supercharging Python from the ground up: Let's all embrace it!"
+date: 2023-06-15
 image: "/images/tributaries.png"
 tags: ["rust", "data-engineering", "databases"]
 ---
@@ -34,7 +31,7 @@ It's safe to say that, since 2015, the Rust community, and the language itself, 
 
 The purpose of this post is to highlight specific developments in Rust's tooling ecosystem that have come together in a very nice way in the period between 2018-2022, which are especially exciting because their combined potential hasn't been unleashed yet. Going back to our boat in the river analogy, the image below shows a number of streams joining a river that's flowing from left to right. You, presumably a Python developer reading this post, are quietly sailing on a boat 🛳️ along the river!
 
-![](./tributaries.png "Image modified from: https://travellingacrosstime.com/2015/08/23/rivers/")
+{{< figure src="tributaries.png" caption="Image modified from [source](https://travellingacrosstime.com/2015/08/23/rivers/)" >}}
 
 The following projects and their associated Rust crates (i.e., packages) are of interest:
 
@@ -154,8 +151,8 @@ Between 2018-2022, there have been multiple key developments in the Rust and PyD
 * Transform data into Arrow tables and move it between your local machine, a database or a data lake (which may be written in entirely other languages like Golang or C++)
 
 
-Now, imagine the power of a future Rust-powered Spark (whatever it will be called) built on DataFusion + Ballista, and being able to seamlessly switch between running your analysis on a single core on your local machine, or in a distributed fashion on a huge cluster. The thought of that (and never having to debug a JVM stack trace ever again) will make data scientists and engineers dance with joy! 🕺💃
+Now, imagine the power of a future Rust-powered Spark (whatever it will be called) built on DataFusion + Ballista, and being able to seamlessly switch between running your analysis on a single core on your local machine, or in a distributed fashion on a huge cluster. The thought of that (and never having to debug a JVM stack trace ever again) will make most data scientists and engineers dance with joy! 🕺💃
 
-As [Will Jones, core developer of `delta-rs` says](https://www.datawill.io/posts/pandas-arrow-rust/):
+As Will Jones, core developer of `delta-rs`, [says](https://www.datawill.io/posts/pandas-arrow-rust/):
 
 > Let's have more Rust in Python's Arrow revolution.

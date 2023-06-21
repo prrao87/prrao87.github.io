@@ -1,29 +1,23 @@
 ---
-type: "post"
 title: "Neo4j for Pythonistas: Part 2"
-date: 2023-06-04T10:19:46-04:00
-draft: false
-showTableOfContents: true
+date: 2023-06-04
 image: "api_design.jpeg"
-tags:
-- python
-- neo4j
-- fastapi
-- knowledge-graphs
-- data-engineering
+tags: ["python", "neo4j", "fastapi", "knowledge-graphs", "data-engineering", "etl"]
 ---
 
 ## Build a RESTful API on top of a Neo4j graph
 
-This is the second part of a series on Neo4j for Pythonistas, in which we will go through an end-to-end workflow to build and analyze graph data in Neo4j using Python. [Part 1 of this series](https://thedataquarry.com/posts/neo4j-python-1/) covered what the data was, how it was validated in Pydantic, and how it was ingested into Neo4j. If all of that is familiar to you, read on!
+This is the second part of a series on Neo4j for Pythonistas, in which we will go through an end-to-end workflow to build and analyze graph data in Neo4j using Python. [Part 1 of this series](https://prrao87.github.io/posts/neo4j-python-1/) covered what the data was, how it was validated in Pydantic, and how it was ingested into Neo4j. If all of that is familiar to you, read on!
 
-> 🚂 If you like reading code directly and want to see the FastAPI codebase for this post, [go straight to `src/api` in this repo](https://github.com/prrao87/neo4j-python-fastapi/tree/main)!
+{{< notice note >}}
+If you like reading code directly and want to see the FastAPI codebase for this post, go straight to `src/api` [in this repo](https://github.com/prrao87/neo4j-python-fastapi/tree/main)!
+{{< /notice >}}
 
 ### Why build a REST API?
 
 Data engineers typically build data-handling and ETL pipelines to ingest large amounts of data into a database. However, for the true value of the data to be realized, it's also important that the data is made available to end users (i.e., "consumers") in the most convenient way possible. In most cases, the consumer would be a front-end or full stack developer responsible for building a client-facing application for a business case. An API layer that sits between the database (server) and the front end (client) application is ideally suited for this purpose -- it allows a database/backend engineer to ensure that the data being stored is being queried, and most importantly, _served_ to the client as necessary to deliver the most value to the business unit that builds the application.
 
-![](api_design.jpeg)
+{{< figure src="api_design.jpeg">}}
 
 ## A quick recap on the data
 
@@ -50,7 +44,7 @@ As described in [part 1 of this series](https://thedataquarry.com/posts/neo4j-py
 
 The graph data model used is a simple one, for the purposes of this blog post.
 
-![](schema.svg)
+{{< figure src="schema.svg">}}
 
 A `:Wine` is from a province and a country, with the province itself belonging to a country. In addition, a `:Person` (who is a wine reviewer) tastes each wine and rates it for the review.
 
@@ -110,9 +104,10 @@ app = FastAPI(lifespan=lifespan)
 
 Note that the URI for the Neo4j browser isn't `localhost` as is normally the case we specify `bolt://neo4j:7687` in this case. This basically says "Connect to the `neo4j` container using the Bolt protocol via port 7687". This is because, as per [part 1](https://thedataquarry.com/posts/neo4j-python-1/) of this series, we initiated the database via Docker. The [`docker-compose.yml`](https://github.com/prrao87/neo4j-python-fastapi/blob/main/docker-compose.yml) file shows how we composed two separate services: one for the Neo4j database, and another for the FastAPI server, both running in their own containers within a shared network `wine`. The container running the FastAPI service is named `neo4j`, which is why the URI is specified the way it is.
 
-💡 __NOTE:__
-> In earlier versions of FastAPI (pre `0.95.0`), it was common to define an event-based logic for managing database connections, using the `@app.on_event("startup")` and `@app.on_event("shutdown")` decorators [as described in the docs](https://fastapi.tiangolo.com/advanced/events/#startup-event). However, this has since been deprecated, and the `lifespan` object is the recommended method to manage DB connections in FastAPI, especially for asynchronous connections.
 
+{{< notice note >}}
+In earlier versions of FastAPI (pre `0.95.0`), it was common to define an event-based logic for managing database connections, using the `@app.on_event("startup")` and `@app.on_event("shutdown")` decorators [as described in the docs](https://fastapi.tiangolo.com/advanced/events/#startup-event). However, this has since been deprecated, and the `lifespan` object is the recommended method to manage DB connections in FastAPI, especially for asynchronous connections.
+{{< /notice >}}
 ### Create routers
 
 [As mentioned in the FastAPI docs](https://fastapi.tiangolo.com/tutorial/bigger-applications/), there are multiple ways to structure your application directories. There's no one "right" way to structure a large application with multiple end points, but, after some experimenting, I find that the structure shown below works really well for a variety of use cases, allowing for easy extensibility by myself or other developers.
@@ -210,9 +205,9 @@ As per the statement above, we serve the endpoints for the REST API with the rou
 ```
 https://localhost:8000/v1/rest/search
 ```
-💡 __Best practice__
-> It's good practice to set a prefix to the router, for e.g., `/v1/rest` to indicate the version of the API and the fact that it's a REST API. The version number specifies to users and developers which version of the API they are calling (in case there are breaking changes in the future).
-
+{{< notice tip >}}
+It's good practice to set a prefix to the router, for e.g., `/v1/rest` to indicate the version of the API and the fact that it's a REST API. The version number specifies to users and developers which version of the API they are calling (in case there are breaking changes in the future).
+{{< /notice >}}
 ### Test endpoint
 
 Pass a simple search query with the terms `tuscany red` with a max price of 50 to a cURL request as follows.
@@ -277,7 +272,7 @@ With this design, the REST API can be easily extended to add more functionality 
 
 The great thing about FastAPI is that you get API docs for free, via the OpenAPI spec. With the Docker containers up and running, navigate to `localhost:8000/docs` to see the existing endpoints defined in this example.
 
-![](api_docs.png)
+{{< figure src="api_docs.png" >}}
 
 ## Conclusions
 
@@ -304,5 +299,3 @@ Here are some nice tutorials that helped me get up and running with Docker and F
 
 1. Learn how to set up a great dev environment in Docker ([Video by Patrick Loeber on YouTube](https://www.youtube.com/watch?v=0H2miBK_gAk&t=1s))
 2. FastAPI docs [intro tutorial by Sebastian Ramirez](https://fastapi.tiangolo.com/lo/tutorial/)
-
-

@@ -1,15 +1,8 @@
 ---
-type: "post"
+author: "Prashanth Rao"
 title: "Hello, world!"
-date: 2023-04-29T11:29:09-04:00
-draft: false
-showTableOfContents: true
-tags:
-- general
-- data-engineering
-
-categories:
-- General
+date: 2023-04-29
+tags: ["general"]
 ---
 
 # Welcome to my blog!
