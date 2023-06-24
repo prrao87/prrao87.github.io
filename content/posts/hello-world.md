@@ -2,7 +2,8 @@
 author: "Prashanth Rao"
 title: "Hello, world!"
 date: 2023-04-29
-tags: ["general"]
+tags: ["rust", "data-engineering"]
+categories: ["general"]
 ---
 
 # Welcome to my blog!
