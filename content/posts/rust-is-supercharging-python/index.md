@@ -1,5 +1,6 @@
 ---
 title: "Rust is supercharging Python from the ground up: Let's all embrace it!"
+description: "How mature, low-level tooling in Rust is causing a transformation in the PyData ecosystem"
 date: 2023-06-15
 image: "/images/tributaries.png"
 tags: ["rust", "data-engineering", "databases"]
