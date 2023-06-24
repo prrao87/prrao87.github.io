@@ -32,6 +32,12 @@ style = "github-dark"
   tag = "tags"
   author = "authors"
 
+[params.utterances]
+  repo = "prrao87/prrao87.github.io" # https://utteranc.es/#heading-repository
+  issueTerm = "og:title" # https://utteranc.es/#heading-mapping
+  label = "comment" # https://utteranc.es/#heading-issue-label
+  theme = "github-dark-orange" # https://utteranc.es/#heading-theme
+
 # Social links
 [[params.social]]
   name = "Github"
