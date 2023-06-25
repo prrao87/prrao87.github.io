@@ -3,7 +3,7 @@ title = "Projects"
 slug = "projects"
 +++
 
-My projects in NLP, data science and engineering can be found on [GitHub](https://github.com/prrao87).
+My projects in NLP, data science and backend development can be found on [GitHub](https://github.com/prrao87).
 
 My favourite ones are listed below.
 
