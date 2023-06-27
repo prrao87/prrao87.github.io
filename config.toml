@@ -6,8 +6,14 @@ defaultcontentlanguage = "en"
 
 paginate = 20
 
+ # Markup
 [markup.highlight]
-style = "github-dark"
+  style = "github-dark"
+[markup.tableOfContents]
+  endLevel = 3
+  ordered = false
+  startLevel = 1
+
 
 [params]
   author = "The Data Quarry"

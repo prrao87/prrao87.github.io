@@ -35,16 +35,14 @@
         {{ if .Params.featuredImage }}
           <img src="{{ .Params.featuredImage | relURL }}" alt="Featured image"/>
         {{ end }}
+        {{ .TableOfContents }}
         {{ .Content }}
       </div>
 
 
       <footer>
         {{ partial "posts/series.html" . }}
-        {{ partial "posts/disqus.html" . }}
-        {{ partial "posts/commento.html" . }}
         {{ partial "posts/utterances.html" . }}
-        {{ partial "posts/giscus.html" . }}
       </footer>
     </article>
 
