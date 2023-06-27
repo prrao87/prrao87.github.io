@@ -8,13 +8,21 @@ categories = ["general", "databases"]
 math = true
 +++
 
-## A gold rush in the vector search landscape
+## A gold rush in the database landscape
 
-There's been a lot of marketing (and unfortunately, hype) on vector databases lately, and if you're reading this, you're likely curious _why_ they exist and what makes them different from one another. In June 2023, I prepared a [tracking spreadsheet](https://docs.google.com/spreadsheets/d/1tUxif_MQYByprhFArZ2XqssvlMVfn5mKjsPjYTOO08o/edit?usp=sharing) to document key defining characteristics and milestones of the various vector databases out there, and I now have __eight__ purpose-built vector databases and __three__ incumbent (established) vendors in my list. There are likely many more that I've missed.
+There's been a lot of marketing (and unfortunately, hype) on vector databases lately, and if you're reading this, you're likely curious _why_ they exist and what makes them different from one another. In June 2023, I prepared a [tracking spreadsheet](https://docs.google.com/spreadsheets/d/1tUxif_MQYByprhFArZ2XqssvlMVfn5mKjsPjYTOO08o/edit?usp=sharing) to document key defining characteristics and milestones of the various vector databases out there, and I now have **eight** purpose-built vector databases and **three** incumbent (established) vendors in my list. There are likely many more that I've missed.
+
+{{< notice note >}}
+**TL;DR**: If you know all about vector databases, jump straight to the [comparison section](#vector-dbs-options-options-and-more-options).
+{{< /notice >}}
+
+
+
+## Goals
 
 In this post, I'll do my best to describe what vector databases do under the hood, without going into too much technical detail. I'll also differentiate between numerous vendors, and explain how you can begin to decide which one's the right one for your needs.
 
-First of all, what can explain the sudden frenzy of activity and investment in this space? 
+First of all, what can explain the sudden frenzy of activity and investment in this space?
 
 ### The age of LLMs
 
@@ -74,7 +82,7 @@ A visualization will make this more intuitive.
 
 {{< figure src="wines-cosine.png">}}
 
-On the left, the two wines (the Reserve White and the Toscana Red) have very little in common, both in terms of vocabulary and concepts, so they have a cosine distance approaching zero (they are orthogonal in the vector space). On the right, the two Zinfandels from Napa Valley have a lot more in common, so they have a much larger cosine similarity closer to 1. The limiting case here would be a cosine similarity of 1 -- a sentence is always perfectly similar to itself.
+On the left, the two wines (the Reserve White and the Toscana Red) have very little in common, both in terms of vocabulary and concepts, so they have a cosine distance approaching zero (they are orthogonal in the vector space). On the right, the two Zinfandels from Napa Valley have a lot more in common, so they have a much larger cosine similarity closer to 1. The limiting case here would be a cosine distance of 1; a sentence is always perfectly similar to itself.
 
 Of course, in a real situation, the actual vector space is high dimensional (and have many more axes other than just the variety of wine) and cannot be visualized on a 2-D plane, but the same principle of cosine similarity applies.
 
@@ -115,12 +123,55 @@ The following sequence of steps are performed to build a similarity search engin
     - The API simply takes in the user query, transforms it into vector space using the same embedding model that was used to vectorize the data itself
 1. Return the top-k approximate nearest neighbours that are closest to the given input query
 
-
 ---
 
-## Vector DBs: Options, options and more options...
+## Vector DBs: Options, options and more options
 
-We're now ready to begin exploring the various vector DB vendors out there! To make it less overwhelming, I'll use visuals wherever possible 👍🏼.
+As described in [the goals](#the-goal), we are comparing 8 purpose-built vector database offerings, and 3 existing ones that add vector search as an extra feature.
+
+### Country of origin
+
+It's always nice to know where a project originated, and where its headquarters are located.
+
+
+### Timeline
+
+First, let's look at how long each vendor has been around.
+
+{{< figure src="vector-db-timeline.png" >}}
+
+Vespa was among the earliest vendors to incorporate vector similarity search alongside the then-dominant BM25 keyword-based search algorithm. Weaviate soon followed with an open-source, dedicated vector search database offering in the end of 2018, and by 2019, we began to see more competition in the space with Milvus (also open-source) being released. Not that Zilliz, shown in the timeline, is not listed in the primary list because it is a commercial cloud-based offering built on top of Milvus. In 2021, three new vendors entered the foray: Vald, Qdrant and Pinecone. Incumbents like Elasticsearch, Redis PostgreSQL, though quiet until this point, began offering vector search much later than one might think, only in 2022 and beyond.
+
+### Source code availability
+
+Among all the options listed, **only one** is completely closed-source with no source code available: Pinecone. Although Zilliz is a commercial offering, it's built on top of Milvus (which is open source) by the same parent company. All the other options are at least source-available.
+
+{{< figure src="vector-db-source-available.png" >}}
+
+{{< notice tip >}}
+Tracking issues, PRs and releases in the open source GitHub repos for each database in question provides a pretty decent idea of what's being prioritized and addressed in the roadmap. Also, the number of GitHub stars ⭐️ is a good indicator of community interest (though in some cases, hype).
+
+> As a developer, I always prefer source-available options for these reasons.
+{{< /notice >}}
+
+### Choice of programming language
+
+The first way that the vector databases differ is in the programming language used for their underlying implementation.
+
+
+Because Java was the dominant 
+
+### Open source or proprietary algorithm
+
+Following the development of new features on GitHub and reading the issues gives you a real feel for the vision of the product.
+
+### Choice of programming language
+
+Rust databases typically use far less resources 
+
+### Architecture
+
+The choice of architecture (especially if kubernetes is involved) can be significant.
 
 
 [^1]: How the revolution of natural language processing is changing the way companies understand text, [TechCrunch](https://techcrunch.com/sponsor/nvidia/how-the-revolution-of-natural-language-processing-is-changing-the-way-companies-understand-text/)
