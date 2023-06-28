@@ -1,5 +1,5 @@
 baseurl = "https://prrao87.github.io"
-title = "Prashanth Rao"
+title = "The Data Quarry"
 theme = "hugo-coder"
 languagecode = "en"
 defaultcontentlanguage = "en"
@@ -16,8 +16,9 @@ paginate = 20
 
 
 [params]
-  author = "The Data Quarry"
-  info = "Databases, APIs and everything in between"
+  author = "Prashanth Rao"
+  description = "Data engineering, databases, software, programming languages and API development"
+  info = ["`The Data Quarry`", "Databases, APIs and everything in between"]
   keywords = "blog,data-engineering,python"
   avatarurl = "images/lake-7884049_640.jpg"
 
