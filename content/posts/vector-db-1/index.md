@@ -2,7 +2,7 @@
 draft = false
 date = 2023-06-28
 title = "Vector databases (Part 1): What makes each one different?"
-image = "/images/vector-db-source-available.png"
+featuredImage = "https://github.com/prrao87/prrao87.github.io/blob/main/static/images/vector-db-source-available.png"
 description = "What makes vector databases like Qdrant, Weaviate, Milvus, Vespa, Vald, Chroma, Pinecone and LanceDB different from one another"
 tags = ["vector-db"]
 categories = ["general", "databases"]
