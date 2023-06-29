@@ -2,7 +2,6 @@
 draft = false
 date = 2023-06-28
 title = "Vector databases (Part 1): What makes each one different?"
-featuredImage = "https://github.com/prrao87/prrao87.github.io/blob/main/static/images/vector-db-source-available.png"
 description = "What makes vector databases like Qdrant, Weaviate, Milvus, Vespa, Vald, Chroma, Pinecone and LanceDB different from one another"
 tags = ["vector-db"]
 categories = ["general", "databases"]
@@ -49,6 +48,15 @@ Vald            |  🇯🇵 Tokyo               |  Yahoo Japan
 
 There's clearly a LOT of activity in the Bay Area, California when it comes to vector databases! Also, there's a large amount of variation in the funding and valuation, and it's clear that there exists no correlation between the capabilities of a database and the amount it's funded for.
 
+### Choice of programming language
+
+Fast, responsive and scalable databases are typically written these days in modern languages like Golang or Rust. Among the purpose-built vendors, the only one that is built in Java is Vespa. Chroma is currently a Python/TypeScript wrapper on top of Clickhouse, an OLAP database built in C++, and an open source vector index, [HNSWLib](https://github.com/nmslib/hnswlib).
+
+{{< figure src="vector-db-lang.png" >}}
+
+
+Interestingly, both Pinecone[^2] and Lance[^3], the underlying storage format for LanceDB, **were rewritten from the ground up** in Rust, even though they were originally written in C++. Clearly, the database community is slowly embracing Rust 🦀💪!
+
 ### Timeline
 
 How long has each vector database been around?
@@ -68,15 +76,6 @@ As a developer, I've found that tracking issues, PRs and releases in the open so
 
 > My developer mind is always uncomfortable with the opaque nature of closed-source products, and as such, I always prefer working with source-available products for the above reasons.
 {{< /notice >}}
-
-### Choice of programming language
-
-Fast, responsive and scalable databases are typically written these days in modern languages like Golang or Rust. Among the purpose-built vendors, the only one that is built in Java is Vespa. Chroma is currently a Python/TypeScript wrapper on top of Clickhouse, an OLAP database built in C++, and an open source vector index, [HNSWLib](https://github.com/nmslib/hnswlib).
-
-{{< figure src="vector-db-lang.png" >}}
-
-
-Interestingly, both Pinecone[^2] and Lance[^3], the underlying storage format for LanceDB, **were rewritten from the ground up** in Rust, even though they were originally written in C++. Clearly, the database community is slowly embracing Rust 🦀💪!
 
 ### Hosting methods
 
