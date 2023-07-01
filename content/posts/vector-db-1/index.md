@@ -62,7 +62,7 @@ How long has each vector database been around?
 
 {{< figure src="vector-db-timeline.png" >}}
 
-Vespa was among the earliest vendors to incorporate vector similarity search alongside the then-dominant BM25 keyword-based search algorithm (Fun fact: Vespa's [GitHub repo]https://github.com/vespa-engine/vespa() now has nearly 75K commits 🤯). Weaviate soon followed with an open-source, dedicated vector search database offering in the end of 2018, and by 2019, we began to see more competition in the space with Milvus (also open-source) being released. Note that Zilliz, also shown in the timeline, is not listed separately because it's the (commercial) parent entity of Milvus and offers a fully-managed cloud solution built on top of Milvus. In 2021, three new vendors entered the foray: Vald, Qdrant and Pinecone. Incumbents like Elasticsearch, Redis & PostgreSQL were conspicuously absent until this point and began offering vector search much later than one might think they should have -- only in 2022 and beyond.
+Vespa was among the earliest vendors to incorporate vector similarity search alongside the then-dominant BM25 keyword-based search algorithm (Fun fact: Vespa's [GitHub repo](https://github.com/vespa-engine/vespa) now has nearly 75K commits 🤯). Weaviate soon followed with an open-source, dedicated vector search database offering in the end of 2018, and by 2019, we began to see more competition in the space with Milvus (also open-source) being released. Note that Zilliz, also shown in the timeline, is not listed separately because it's the (commercial) parent entity of Milvus and offers a fully-managed cloud solution built on top of Milvus. In 2021, three new vendors entered the foray: Vald, Qdrant and Pinecone. Incumbents like Elasticsearch, Redis & PostgreSQL were conspicuously absent until this point and began offering vector search much later than one might think they should have -- only in 2022 and beyond.
 
 ### Source code availability
 
@@ -173,7 +173,7 @@ I hope you found this summary useful! In the next posts, I'll summarize the unde
 
 ---
 
-### Edits
+## Edits
 
 As I keep learning new things from the community every day, I'll track any updates I make in this section 😄.
 
