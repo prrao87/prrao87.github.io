@@ -40,10 +40,10 @@ Company         | Headquartered in | Funding
 Weaviate        |  🇳🇱 Amsterdam           |  $68M Series B
 Qdrant          |  🇩🇪 Berlin              |  $11M Seed
 Pinecone        |  🇺🇸 San Francisco       |  $138M Series B
-Milvus/Zilliz   |  🇨🇳 / 🇺🇸 San Francisco  |  $113M Series B
+Milvus/Zilliz   |  🇨🇳 / 🇺🇸 Redwood City   |  $113M Series B
 Chroma          |  🇺🇸 San Francisco       |  $20M Seed
 LanceDB         |  🇺🇸 San Francisco       |  Venture
-Vespa           |  🇺🇸 Redwood City        |  Yahoo!
+Vespa           |  🇳🇴 / 🇺🇸 Indianapolis   |  Yahoo!
 Vald            |  🇯🇵 Tokyo               |  Yahoo! Japan
 
 There's clearly a LOT of activity in the Bay Area, California when it comes to vector databases! Also, there's a large amount of variation in funding and valuations, and it's clear that there exists no correlation between the capabilities of a database and the amount it's funded for.
@@ -62,7 +62,7 @@ How long has each vector database been around?
 
 {{< figure src="vector-db-timeline.png" >}}
 
-Vespa was among the earliest vendors to incorporate vector similarity search alongside the then-dominant BM25 keyword-based search algorithm. Weaviate soon followed with an open-source, dedicated vector search database offering in the end of 2018, and by 2019, we began to see more competition in the space with Milvus (also open-source) being released. Note that Zilliz, also shown in the timeline, is not listed separately because it's the (commercial) parent entity of Milvus and offers a fully-managed cloud solution built on top of Milvus. In 2021, three new vendors entered the foray: Vald, Qdrant and Pinecone. Incumbents like Elasticsearch, Redis & PostgreSQL were conspicuously absent until this point and began offering vector search much later than one might think they should have -- only in 2022 and beyond.
+Vespa was among the earliest vendors to incorporate vector similarity search alongside the then-dominant BM25 keyword-based search algorithm (Fun fact: Vespa's [GitHub repo]https://github.com/vespa-engine/vespa() now has nearly 75K commits 🤯). Weaviate soon followed with an open-source, dedicated vector search database offering in the end of 2018, and by 2019, we began to see more competition in the space with Milvus (also open-source) being released. Note that Zilliz, also shown in the timeline, is not listed separately because it's the (commercial) parent entity of Milvus and offers a fully-managed cloud solution built on top of Milvus. In 2021, three new vendors entered the foray: Vald, Qdrant and Pinecone. Incumbents like Elasticsearch, Redis & PostgreSQL were conspicuously absent until this point and began offering vector search much later than one might think they should have -- only in 2022 and beyond.
 
 ### Source code availability
 
@@ -141,9 +141,9 @@ In this section, I'll list some of the key takeaways and the pros and cons of ea
 
 ### Vespa
 
-* __Pros__: Provides the most enterprise-ready hybrid search capabilities, combining the tried-and-tested power of keyword search and a custom vector search on top of HNSW. Although other vendors like Weaviate also provide keyword and vector search, Vespa was among the first to market with this offering, which has given them ample time to optimize their offering.
-* __Cons__: The developer experience in Java-based databases (simply due to the bulky nature of Java packages), including setup and teardown, is nowhere near as smooth as in more modern alternatives that are written in performance-oriented languages like Go or Rust.
-* __My take__: I believe the world is slowly but surely moving away from Java-based databases. Most new databases built these days are written in languages like Go or Rust, and those options could be the better choice for leaner, younger teams in terms of resource utilization, memory consumption and scalability.
+* __Pros__: Provides the most "enterprise-ready" hybrid search capabilities, combining the tried-and-tested power of keyword search and a custom vector search on top of HNSW. Although other vendors like Weaviate also provide keyword and vector search, Vespa was among the first to market with this offering, which has given them ample time to optimize their offering to be fast, accurate and scalable.
+* __Cons__: The developer experience is not as smooth as in more modern alternatives that are written in performance-oriented languages like Go or Rust, due to the application layer being written in Java. Also, until recently, it didn't make it very straightforward to set up and tear down development instances, for example via Docker and Kubernetes.
+* __My take__: Vespa does have a very good offering, but it's application is mostly built in Java, while the backend and indexing layer are built in C++. This makes it harder to maintain over time and as such, it tends to have a less developer-friendly feel than other alternatives. Most new databases these days are written entirely in one language, typically Golang or Rust, and there seems to be a lot more rapid pace of innovation in algorithms and architectures happening in databases like Weaviate, Qdrant and LanceDB.
 * __Official page__: [vespa.ai](https://vespa.ai/)
 
 ### Vald
@@ -170,6 +170,15 @@ It's hard to imagine any other time in history when any one kind of database has
 I'll end this post with the observation that, historically in the database world, the most successful business model has been the tried-and-tested approach of open-sourcing the code upfront (so that a passionate community builds around the technology), followed by commercializing the tool through managed service or cloud offerings. Embedded databases are relatively new in this space, and it remains to be seen how successful they will be in monetizing their product and generating long-term revenue. As such, it stands to reason that completely closed-source offerings may not capture a large market share -- over the longer term, my gut feel is that databases that value the developer ecosystem and developer experience are likely to thrive, and building an active open source community that believes in the tool will matter more than you think!
 
 I hope you found this summary useful! In the next posts, I'll summarize the underlying search and indexing algorithms in vector databases and go a bit deeper into the technical details. 🤓 🚀
+
+---
+
+### Edits
+
+As I keep learning new things from the community every day, I'll track any updates I make in this section 😄.
+
+- 2023-07-01: Corrected the programming language & location information for Vespa, per the helpful input from [@codycollier](https://github.com/codycollier)
+
 
 [^1]: Source of funding numbers: [objectbox.io](https://objectbox.io/vector-database/)
 [^2]: Rewriting a high performance vector database in Rust, [Pinecone blog](https://www.pinecone.io/learn/rust-rewrite/)
