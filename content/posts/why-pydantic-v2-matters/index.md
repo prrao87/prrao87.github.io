@@ -20,7 +20,7 @@ Python 3.5 introduced [type hints](https://peps.python.org/pep-0484/), which all
 
 As stated in their docs[^1], Pydantic is a highly used library and is downloaded >70 million times a month -- it is used by 20 of the 25 largest companies on the NASDAQ, as well as all the biggest tech companies in the world. Clearly, ensuring type stability and cleaner data upstream, offers a TON of value and can save a lot of wasted compute time in production! When you think of the sheer volume of data being handled at the largest companies on earth (most of them involving Python, due to its heavy use in data science and ML), it makes sense why Pydantic has become so important.
 
-## The core of Pydantic v2 is written in Rust 🦀, and that matters
+## The core of Pydantic v2 is written in Rust 🦀
 
 Normally, the release of a new major version of a library is just water under the bridge, and life goes on as normal. However, it's because of where exactly Pydantic sits in the value chain -- at the foundation of a host of data wrangling and ETL workflows -- and the fact that its core functionality is now written in a systems language like Rust, that makes v2 so important. If you think about it, modern software engineering and machine learning workflows rely on large batches or streams of data coming in, and it's a well-known fact that data quality can impact multiple outcomes of a software product[^2], all the way from customer engagement to insight generation and, ultimately, revenue output.
 
@@ -331,9 +331,9 @@ Cycle 10 | 2.926 sec  | 0.582 sec
 
 - Our v1 validation logic involved looping through dictionary key/value pairs and performing type checks and replacements in Python
 - In v2 of Pydantic, all these operations, which are normally rather expensive in Python (due to its dynamic nature), are pushed down to the Rust level, which offers some powerful features, as per Samuel Colvin, creator of Pydantic[^4].
-    - Compiled Rust bindings means that all the validations are happening _outside_ of Python
-    - Recursive function calls in Rust, which have very little additional overhead
-    - Using a tree of much small validators, which call each other, making code easier to read and extend without harming perforamnce
+    - Compiled Rust bindings means all the validations are happening _outside_ of Python
+    - Recursive function calls are made in Rust, which have very little additional overhead
+    - Using a tree of much small validators that call each other, making code easier to read and extend without harming performance
 
 
 In many real world scenarios, the validation logic implemented in Python (due to business needs) can get rather complex, so the fact that library developers can leverage the power of Rust and reuse code this way, is a huge deal.
