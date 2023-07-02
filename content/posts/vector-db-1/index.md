@@ -127,9 +127,9 @@ In this section, I'll list some of the key takeaways and the pros and cons of ea
 
 ### Chroma
 
-* __Pros__: Offers a convenient JavaScript API for front end developers to quickly get a vector store up and running. it was the first vector database in the market to offer embedded mode by default, where the database itself and application layers are tightly integrated.
-* __Cons__: Unlike the other purpose-built vendors, Chroma is largely a Python/TypeScript wrapper around an existing OLAP database (Clickhouse), and an existing open source vector search implementation ([hnswlib](https://github.com/nmslib/hnswlib)). A server implementation is in progress, and a lot regarding their road map is fluid and subject to change, depending on the state of the competitive market.
-* __My take__: The vector DB market is rapidly evolving, and Chroma seems to be inclined[^7] to adopt a "wait and watch" philosophy, in terms of favouring a serverless/embedded model vs. a full-fledged, cloud-native SaaS solution based on a client-server architecture. Based on their JavaScript-friendly API and the fact that they're still working on their own underlying storage layer while leveraging existing databases and frameworks in the interim, the key market focus seems to be front-end developers who can put LLM and vector search directly into the hands of non-technical users. From a long term perspective, we've never yet seen an embedded database architecture be successfully commercialized in the vector search space, so its evolution (alongside LanceDB, described below) will be interesting to watch!!
+* __Pros__: Offers a convenient Python/JavaScript interface for developers to quickly get a vector store up and running. It was the first vector database in the market to offer embedded mode by default, where the database and application layers are tightly integrated, allowing developers to quickly build, prototype and showcase their projects to the world.
+* __Cons__: Unlike the other purpose-built vendors, Chroma is largely a Python/TypeScript wrapper around an existing OLAP database (Clickhouse), and an existing open source vector search implementation ([hnswlib](https://github.com/nmslib/hnswlib)). For now (as of June 2023), it doesn't implement its own storage layer.
+* __My take__: The vector DB market is rapidly evolving, and Chroma seems to be inclined[^7] to adopt a "wait and watch" philosophy, and are among the few vendors that are aiming to provide multiple hosting options: serverless/embedded, self-hosted (client-server) and a cloud-native distributed SaaS solution, with potentially both embedded and client-server mode. As per their road map[^4], Chroma's server implementation is in progress. Another interesting area of innovation that Chroma is bringing in is a means to quantify "query relevance", that is, how close is the returned result to the input user query. Visualizing the embedding space, which is also listed in their road map, is an area of innovation that could allow the database to be used for may applications other than search. From a long term perspective, however, we've never yet seen an embedded database architecture be successfully monetized in the vector search space, so its evolution (alongside LanceDB, described below) will be interesting to watch!!
 * __Official page__: [trychroma.com](https://www.trychroma.com/)
 
 ### LanceDB
@@ -178,6 +178,7 @@ I hope you found this summary useful! In the next posts, I'll summarize the unde
 As I keep learning new things from the community every day, I'll track any updates I make in this section 😄.
 
 - 2023-07-01: Corrected the programming language & location information for Vespa, per the helpful input from [@codycollier](https://github.com/codycollier)
+- 2023-07-02: Added more info on Chroma, based on [^4] and [^10]
 
 
 [^1]: Source of funding numbers: [objectbox.io](https://objectbox.io/vector-database/)
@@ -190,3 +191,4 @@ Neighbor Search on a Single Node, [NeurIPS 2019](https://suhasjs.github.io/files
 [^7]: Chroma: Open source embedding database, [Software Engineering Daily Podcast](https://softwareengineeringdaily.com/2023/04/20/open-source-embedding-database/)
 [^8]:Milvus Was Built for Massive-Scale (Think Trillion) Vector Similarity Search, [Milvus blog](https://milvus.io/blog/Milvus-Was-Built-for-Massive-Scale-Think-Trillion-Vector-Similarity-Search.md)
 [^9]: ANN algorithms: Vamana vs. HNSW, [Weaviate blog](https://weaviate.io/blog/ann-algorithms-vamana-vs-hnsw#large-scale)
+[^10]: Fireside Chat with Jeff Huber, co-founder of Chroma, [Data Driven NYC](https://www.youtube.com/watch?v=NI0faK90TP4)
