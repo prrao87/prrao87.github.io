@@ -1,24 +1,24 @@
 +++
-draft = true
+draft = false
 date = 2023-07-01
-title = "Pydantic v2 is out: Why this matters"
-description = "How changing a few lines of Pydantic code from v1 to v2 gives you a 5x improvement in performance, for free"
+title = "Obtain a 5x speedup for free by upgrading to Pydantic v2"
+description = "Why Pydantic v2 being written in Rust matters, and how it's MUCH faster"
 tags = ["pydantic", "data-engineering", "python", "rust"]
 categories = ["etl"]
 +++
 
-# Case study: Obtain a 5x improvement (for free) by upgrading to Pydantic v2
-If you've worked with any form of data wrangling in Python, you've likely heard of [Pydantic](https://docs.pydantic.dev/latest/). If not, welcome! In this post, I'll show an example of why Pydantic is so integral to the workflows of data scientists and engineers. But, more importantly, I'll highlight why the release of v2 of Pydantic is so significant, not only due to the fact that it's at least 5x faster than v1, but also from the broader perspective of energy consumption.
+# Why it matters that Pydantic v2 is written in Rust
+If you've worked with any form of data wrangling in Python, you've likely heard of [Pydantic](https://docs.pydantic.dev/latest/). If not, welcome! In this post, I'll show an example of why Pydantic is so integral to the workflows of data scientists and engineers, and how just a few small changes to your existing code written in v1 can be changed as per v2, to obtain a 5x speedup, largely due to Pydantic's internals being rewritten in Rust.
 
-## What is Pydantic and why should you care?
+## What is Pydantic and why would you use it?
 
-Yes, compiled language enthusiasts, we hear you. _Unlike_ compiled languages (C, C++, Rust), Python is an interpreted, dynamically typed language where variables can change in type during run time. This means that when you write Python code, especially for large code bases involving data transformations, it becomes necessary to test for a _lot_ of edge cases. A whole class of errors (`TypeError`) gets introduced into your Python runtime, where the data you expect downstream may not align with the data you or other developers put in, upstream.
+Yes, compiled language enthusiasts, we hear you. Python, _unlike_ compiled languages (C, C++, Rust), is an interpreted, dynamically typed language where variables can change in type during run time. This means that when you write Python code, especially for large code bases involving ETL & data transformations, it becomes necessary to test for a _lot_ of edge cases. A whole class of errors (`TypeError`) gets introduced into your Python runtime, where data obtained downstream may not align with expectations based on logic you or other developers put in, upstream.
 
-Python 3.6 introduced type hinting, which allows developers to declare what type a variable should be, prior to runtime. However, this is still nowhere near as type-safe as compiled languages, because type-hinting **doesn't enforce data types** at runtime -- they're only a _guide_, and not a guarantee that the data you pass around remains a certain type. What's the solution to this? Enter Pydantic 😎.
+Python 3.5 introduced [type hints](https://peps.python.org/pep-0484/), which allows developers to declare what type a variable should be, prior to runtime. However, type hints are only marginally effective because they **don't enforce** data types at runtime -- they're only a _guide_, and not a guarantee that the data you pass around remains a certain type. What's the solution to this? Enter Pydantic 😎.
 
-[As per their docs](https://docs.pydantic.dev/latest/#why-use-pydantic), Pydantic is a Python data validation library that leverages the underlying information in type hints and adds additional checks and constraints via a _schema_, so that any data handling code you write is validated to be of a specific type during runtime -- if the data isn't of the expected type of quality, Pydantic very loudly throws an error, helping developers catch unwanted bugs in their data _prior to deployment_ in production. Using Pydantic reduces the number of tests required, eliminating entire classes of errors and bugs, streamlining the development process and ensuring that complex Python workflows run more reliably in production.
+[As per their docs](https://docs.pydantic.dev/latest/#why-use-pydantic), Pydantic is a Python data validation library that leverages the underlying information in type hints and adds additional checks and constraints via a _schema_, so that any data handling code you write is validated to be of a specific type during runtime -- if the data isn't of the expected type of quality, Pydantic very loudly and explicitly throws an error, helping developers more easily trace down unwanted bugs in their data _prior to deployment_ in production. Using Pydantic reduces the number of tests required, eliminating entire classes of bugs, streamlining the development process and ensuring that complex Python workflows run more reliably in production.
 
-As stated in their docs[^1], Pydantic is downloaded >70 million times a month, and is used by 20 of the 25 largest companies on the NASDAQ, as well as all the biggest tech companies in the world. Clearly, ensuring type stability and cleaner data upstream, offers a TON of value and can save a lot of lost compute time in production! When you think of the sheer volume of data being handled at the largest companies on earth (most of them in Python, especially when ML is involved), it makes sense why this is so important.
+As stated in their docs[^1], Pydantic is a highly used library and is downloaded >70 million times a month -- it is used by 20 of the 25 largest companies on the NASDAQ, as well as all the biggest tech companies in the world. Clearly, ensuring type stability and cleaner data upstream, offers a TON of value and can save a lot of wasted compute time in production! When you think of the sheer volume of data being handled at the largest companies on earth (most of them involving Python, due to its heavy use in data science and ML), it makes sense why Pydantic has become so important.
 
 ## The core of Pydantic v2 is written in Rust 🦀, and that matters
 
@@ -32,9 +32,9 @@ I've already written about this in [my other blog post](../rust-is-supercharging
 
 As of v2, Pydantic is now divided into two packages:
 - `pydantic-core`: Contains Rust bindings for the core validation and serialization logic, and doesn't have a user-facing interface
-- `pydantic`: A pure Python package that Python developers interact with
+- `pydantic`: A pure Python, higher level, user-facing package
 
-When you write your validation logic in Python via Pydantic v2, you're simply defining "instructions" that are passed down to the `pydantic-core` Rust layer, which offers much better support for generic types and strict typing than Python does (while also being much more performant).
+When you write your validation logic in Python via Pydantic v2, you're simply defining "instructions" that are pushed down to the `pydantic-core` Rust layer, which is highly optimized and offers much better support for generic types and type checking than Python does (while also being much more performant).
 
 {{< figure src="pydantic-core.png" >}}
 
@@ -75,10 +75,10 @@ An example JSON line is shown below.
 ### The benchmark
 
 This benchmark consists of the following data validation tasks:
-- Ensure the `id` field is an integer (this will be the primary key)
+- Ensure the `id` field always exists (this will be the primary key), and is an integer
 - Ensure the `points` field is an integer
 - Ensure the `price` field is a float
-- Ensure the `country` field always has a non-null value -- if it's set as `null` or the `country` key doesn't exist in the raw data, it _must_ be set to `Unknown`. This is because we will be querying on the `country` field downstream, and we want to know how many countries are in the data
+- Ensure the `country` field always has a non-null value -- if it's set as `null` or the `country` key doesn't exist in the raw data, it _must_ be set to `Unknown`. This is because the use case we defined will involve querying on `country` downstream
 - Remove fields like `designation`, `province`, `region_1` and `region_2` if they have the value `null` in the raw data -- these fields will not be queried on and we do not want to unnecessarily store null values downstream
 
 {{<notice note>}}
@@ -92,7 +92,7 @@ When running benchmarks, it makes sense to use a convenience library like [codet
 
 ## Schema
 
-The schema file is at the root the validation logic in Pydantic. The general practice is to use [validators](https://docs.pydantic.dev/latest/usage/validators/), which are a special kind of class method in Pydantic, to transform or validate data and ensure it's of the right type and format for downstream tasks. Using validators is _far cleaner_ than writing custom functions that manipulate data (they would be riddled with ugly `if-else` statements or `isinstance` clauses). The schema below implements the validation logic we require. To see the differences in code between Pydantic v2 and v1, switch between the tabs as desired.
+The schema file is at the root of the validation logic in Pydantic. The general practice is to use [validators](https://docs.pydantic.dev/latest/usage/validators/), which are a special kind of class method in Pydantic, to transform or validate data and ensure it's of the right type and format for downstream tasks. Using validators is _far cleaner_ than writing custom functions that manipulate data (they would be riddled with ugly `if-else` statements or `isinstance` clauses). The schema below implements the validation logic we defined above. To see the differences in code between Pydantic v2 and v1, switch between the tabs shown below.
 
 {{< tabgroup align="left" style="code" >}}
   {{< tab name="Pydantic v2" >}}
@@ -199,19 +199,19 @@ class Wine(BaseModel):
 
 ### Differences in code between v2 and v1
 
-There are only a couple areas where we need to change the code to upgrade from v1 to v2 of Pydantic.
+There are only a couple of areas where we need to update the code based on the differences between v1 and v2 of Pydantic.
 
 - In Pydantic v2, `root_validator` is deprecated, and we instead use `model_validator`
-    - In a similar way, in v2, `validator` is deprecated and we instead use `field_validator`
-- The keyword arguments to the `model_validator` differ from the `root_validator` (and in my opinion, are intuitively easier to understand)
-    - `mode="before"` here means that we are performing data transformations on the fields within the data, prior to validation
+    - In a similar way, `validator` is deprecated and we instead use `field_validator` where we may need to validate specific fields (not used in this example)
+- The keyword arguments to the `model_validator` differ from v1's `root_validator` (and in my view, have cleaner, more intuitive names)
+    - `mode="before"` here means that we are performing data transformations on the fields that already exist in the raw data, prior to validation
 
-That's it! With just these minor changes (**everything else is kept the same**) in the schema definition, we are now read to test out how they perform!
+That's it! With just these minor changes (**everything else is kept the same**) in the schema definition, we are now ready to test their performance!
 
 
 ## Run benchmark
 
-Set up separate virtual environments, one with Pydantic v2 installed, and another one with v1 installed. Each portion of the code base is explained in the following sections.
+Set up two separate Python virtual environments, one with Pydantic v2 installed, and another one with v1 installed. Each portion of the code base is explained in the following sections.
 
 ### Read in data as a list of dicts
 
@@ -268,7 +268,7 @@ from schemas import Wine
 
 def validate(
     data: list[JsonBlob],
-    exclude_none: bool = False,
+    exclude_none: bool = True,
 ) -> list[JsonBlob]:
     """Validate a list of JSON blobs against the Wine schema"""
     validated_data = [Wine(**item).dict(exclude_none=exclude_none) for item in data]
@@ -285,6 +285,8 @@ def validate(
 To time each validation cycle, we wrap the `run` function inside a `Timer` context manager as follows. Note that this requires that the `codetiming` library is installed: `pip install codetiming`.
 
 ```python
+from codetiming import Timer
+
 def run():
     """Wrapper function to time the validator over many runs"""
     with Timer(name="Single case", text="{name}: {seconds:.3f} sec"):
@@ -307,7 +309,7 @@ with Timer(name="All cases", text="{name}: {seconds:.3f} sec"):
 
 
 {{<notice info>}}
-For a total of 10 cycles (where each cycle handles ~130k records), Pydantic v2 performs ~1.3 dict validations in roughly **6 seconds**, while the exact same workflow in v1 took almost **30 seconds** -- that's a **5x improvement**, for free!
+For a total of 10 cycles (where each cycle validates the same ~130k records), Pydantic v2 performs ~1.3 million validations in roughly **6 seconds**, while the exact same workflow in v1 took almost **30 seconds** -- that's a **5x improvement**, for free!
 {{</notice>}}
 
 
@@ -325,27 +327,38 @@ Cycle 9  | 2.950 sec  | 0.590 sec
 Cycle 10 | 2.926 sec  | 0.582 sec
 **Total** | **29.585 sec** | **6.032 sec**
 
+### Why did v2 perform so much better?
+
+- Our v1 validation logic involved looping through dictionary key/value pairs and performing type checks and replacements in Python
+- In v2 of Pydantic, all these operations, which are normally rather expensive in Python (due to its dynamic nature), are pushed down to the Rust level, which offers some powerful features, as per Samuel Colvin, creator of Pydantic[^4].
+    - Compiled Rust bindings means that all the validations are happening _outside_ of Python
+    - Recursive function calls in Rust, which have very little additional overhead
+    - Using a tree of much small validators, which call each other, making code easier to read and extend without harming perforamnce
+
+
+In many real world scenarios, the validation logic implemented in Python (due to business needs) can get rather complex, so the fact that library developers can leverage the power of Rust and reuse code this way, is a huge deal.
 
 ## Conclusions and broader implications
 
-The timing numbers shown in this case study were for _validation only_. In a full-blown ETL workflow in production, it's likely that there are _many_ such scripts working on data far larger than this. It's easy to imagine scenarios at FAANG-scale companies (who actually use Pydantic in production) where the total number of such validations performed on a daily basis number in the _trillions_, purely due to the scale of data being passed around between data stores and applications.
+The timing numbers shown in this case study were for _validation only_. In a full-blown ETL workflow in production, it's likely that there are _many_ such scripts working on data far larger than 1 million records. It's easy to imagine that, when adding up the number of validations performed in Python at all the FAANG-scale companies (who really do use Pydantic in production), we would get a number in the _trillions_, purely due to the scale of data and the complexity of tasks being performed at these companies.
 
-In 2019, Amazon's AWS announced official sponsorship to the Rust project. AWS is now among the core contributors to the development of the Rust language, and for good reason: in 2022 AWS published a blog post highlighting how large-scale adoption of Rust at the core of compute-heavy operations can reduce energy usage in data centres worldwide[^4] by almost 50%! 🤯 As per data available in 2020[^5], data centers consume about 200 terawatt hours per year globally, which amounts to around 1% of the total energy consumed on our planet. It's natural that with the frenzy of activity in AI and cloud computing these days, energy utilization in data centres will only grow with time, so any reduction in energy consumption via more efficient bare-metal operations has massive consequences!
+In 2019, Amazon's AWS announced official sponsorship to the Rust project. AWS is now among the core contributors to the development of the Rust language, and for good reason: in 2022 AWS published a blog post highlighting how large-scale adoption of Rust at the core of compute-heavy operations can reduce energy usage in data centres worldwide[^5] by almost 50%! 🤯 As per data available in 2020[^6], data centres consume about 200 terawatt hours per year globally, which amounts to around 1% of the total energy consumed on our planet. It's natural that with the frenzy of activity in AI and cloud computing these days, energy utilization in data centres will only grow with time, so any reduction in energy consumption via more efficient bare-metal operations has massive consequences!
 
 > Projects like Pydantic that perform core lower-level operations in Rust while allowing higher-level developers to build rapidly can have a **huge** impact on reducing energy consumption worldwide.
 
 There are many other projects also going down the road of building faster, more efficient Python tooling on top of Rust, but projects like Pydantic, which were among the first to do so, will surely serve as an inspiration to the community at large. 💪
 
-Exciting times ahead, and hopefully this post will serve as an inspiration for you to begin exploring (and hopefully, learning) Rust 🦀.
+Hopefully this post will serve as an inspiration for you to begin exploring (and hopefully, learning) Rust 🦀!
 
 
 ## Reproduce the benchmark
 
-The full code and the data to reproduce these results are [available on GitHub](https://github.com/prrao87/pydantic-v2-test-drive). Depending on the CPU your machine uses, your mileage may vary. Have fun and happy Pydant-ing!
-😎
+The code and the data to reproduce these results are [available on GitHub](https://github.com/prrao87/pydantic-v2-test-drive). Depending on the CPU your machine uses, your mileage may vary. Have fun and happy Pydant-ing! 😎
+
 
 [^1]: Pydantic [docs](https://docs.pydantic.dev/latest)
 [^2]: Data Quality in AI: Challenges, Importance & Best Practices, [AIMultiple](https://research.aimultiple.com/data-quality-ai/#:~:text=Data%20quality%20is%20crucial%20in,trust%20and%20confidence%20among%20users.)
 [^3]: How Pydantic V2 leverages Rust's Superpowers, [FOSDEM '23](https://fosdem.org/2023/schedule/event/rust_how_pydantic_v2_leverages_rusts_superpowers/)
-[^4]: Sustainability with Rust, [AWS Open Source Blog](https://aws.amazon.com/blogs/opensource/sustainability-with-rust/)
-[^5]: Global data centre energy demand by data centre type, 2010-2022, [iea.org](https://www.iea.org/data-and-statistics/charts/global-data-centre-energy-demand-by-data-centre-type-2010-2022)
+[^4]: The Talk Python Live Stream #376, [Pydantic v2 plan](https://www.youtube.com/watch?v=URrUBgOFl6U)
+[^5]: Sustainability with Rust, [AWS Open Source Blog](https://aws.amazon.com/blogs/opensource/sustainability-with-rust/)
+[^6]: Global data centre energy demand by data centre type, 2010-2022, [iea.org](https://www.iea.org/data-and-statistics/charts/global-data-centre-energy-demand-by-data-centre-type-2010-2022)
