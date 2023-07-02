@@ -20,7 +20,7 @@ Python 3.5 introduced [type hints](https://peps.python.org/pep-0484/), which all
 
 As stated in their docs[^1], Pydantic is a highly used library and is downloaded >70 million times a month -- it is used by 20 of the 25 largest companies on the NASDAQ, as well as all the biggest tech companies in the world. Clearly, ensuring type stability and cleaner data upstream, offers a TON of value and can save a lot of wasted compute time in production! When you think of the sheer volume of data being handled at the largest companies on earth (most of them involving Python, due to its heavy use in data science and ML), it makes sense why Pydantic has become so important.
 
-## The core of Pydantic v2 is written in Rust 🦀
+## Pydantic v2: A new core 🦀
 
 Normally, the release of a new major version of a library is just water under the bridge, and life goes on as normal. However, it's because of where exactly Pydantic sits in the value chain -- at the foundation of a host of data wrangling and ETL workflows -- and the fact that its core functionality is now written in a systems language like Rust, that makes v2 so important. If you think about it, modern software engineering and machine learning workflows rely on large batches or streams of data coming in, and it's a well-known fact that data quality can impact multiple outcomes of a software product[^2], all the way from customer engagement to insight generation and, ultimately, revenue output.
 
@@ -34,9 +34,17 @@ As of v2, Pydantic is now divided into two packages:
 - `pydantic-core`: Contains Rust bindings for the core validation and serialization logic, and doesn't have a user-facing interface
 - `pydantic`: A pure Python, higher level, user-facing package
 
-When you write your validation logic in Python via Pydantic v2, you're simply defining "instructions" that are pushed down to the `pydantic-core` Rust layer, which is highly optimized and offers much better support for generic types and type checking than Python does (while also being much more performant).
+When you write your validation logic in Python via Pydantic v2, you're simply defining "instructions" that are pushed down to the `pydantic-core` Rust layer. Samuel Colvin, creator of Pydantic, explains[^4] how a large part of the performance gains are achieved:
+
+- Compiled Rust bindings means all the validations are happening _outside_ of Python
+- Recursive function calls are made in Rust, which have very little additional overhead
+- Using a tree of small validators that call each other, making code easier to read and extend without harming performance
 
 {{< figure src="pydantic-core.png" >}}
+
+
+
+
 
 
 ## Case study on Pydantic v1 vs v2
@@ -330,11 +338,8 @@ Cycle 10 | 2.926 sec  | 0.582 sec
 ### Why did v2 perform so much better?
 
 - Our v1 validation logic involved looping through dictionary key/value pairs and performing type checks and replacements in Python
-- In v2 of Pydantic, all these operations, which are normally rather expensive in Python (due to its dynamic nature), are pushed down to the Rust level, which offers some powerful features, as per Samuel Colvin, creator of Pydantic[^4].
-    - Compiled Rust bindings means all the validations are happening _outside_ of Python
-    - Recursive function calls are made in Rust, which have very little additional overhead
-    - Using a tree of much small validators that call each other, making code easier to read and extend without harming performance
-
+- In v2 of Pydantic, all these operations, which are normally rather expensive in Python (due to its dynamic nature), are pushed down to the Rust level
+    - None of the loops in the validator expressions are actually run in Python, explaining why without any major code changes, we see a large gain in performance
 
 In many real world scenarios, the validation logic implemented in Python (due to business needs) can get rather complex, so the fact that library developers can leverage the power of Rust and reuse code this way, is a huge deal.
 
