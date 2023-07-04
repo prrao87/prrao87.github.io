@@ -258,10 +258,7 @@ if __name__ == "__main__":
 ```python
 from schemas import Wine
 
-def validate(
-    data: list[JsonBlob],
-    exclude_none: bool = True,
-) -> list[JsonBlob]:
+def validate(data: list[JsonBlob]) -> list[JsonBlob]:
     """Validate a list of JSON blobs against the Wine schema"""
     validated_data = [Wine(**item).model_dump(exclude_none=True) for item in data]
     return validated_data
@@ -274,12 +271,9 @@ def validate(
 ```python
 from schemas import Wine
 
-def validate(
-    data: list[JsonBlob],
-    exclude_none: bool = True,
-) -> list[JsonBlob]:
+def validate(data: list[JsonBlob]) -> list[JsonBlob]:
     """Validate a list of JSON blobs against the Wine schema"""
-    validated_data = [Wine(**item).dict(exclude_none=exclude_none) for item in data]
+    validated_data = [Wine(**item).dict(exclude_none=True) for item in data]
     return validated_data
 ```
 
@@ -298,7 +292,7 @@ from codetiming import Timer
 def run():
     """Wrapper function to time the validator over many runs"""
     with Timer(name="Single case", text="{name}: {seconds:.3f} sec"):
-        validated_data = validate(data, exclude_none=True)
+        validated_data = validate(data)
         print(f"Validated {len(validated_data)} records in cycle {i + 1} of {num}")
 ```
 
