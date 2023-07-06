@@ -131,7 +131,37 @@ The following sequence of steps are performed to build a similarity search engin
 
 # What can we do best with vector databases?
 
+In this section, I'll cover peripheral areas around vector databases, and the kinds of applications we're seeing become more and more common due to inherent scalability of these systems.
 
+## Don't get tunnel vision when it comes to vector search
+
+In his excellent review post[^2], Colin Harman describes how a lot of companies experience "tunnel vision" when it comes to the search & retrieval landscape. Vector databases not the panacea -- they are very good at being the base layer of _semantic_ search applications, but in many cases, traditional keyword search can yield more relevant results and increased user satisfaction, as pointed out by Harman[^3]. Why is this? It's largely to do with the fact that the ranking and scoring criteria used by vector indexes do not reward exactness of keywords in the query input.
+
+- __Keyword search__: Finds relevant, useful results when the user _knows_ what they're looking for and expects results that match exact phrases in their search terms
+- __Vector search__: Finds relevant results when the user _doesn't_ know what exactly they're looking for
+
+
+To get the best results, a combination of scalar (keyword-based) and vector search are often used by practitioners building information retrieval and search systems.
+
+The bottom line, per Harman[^2]:
+
+> If you're not very familiar with the field of search & information retrieval, the following materials **should NOT** be your primary sources of information for any kind of decision making on architecting your system:
+> - Infrastructure stacks from super-smart VCs
+> - Tutorials from popular LLM application frameworks
+
+## How are hybrid search systems built?
+
+Qdrant and Meilisearch example:
+https://qdrant.tech/articles/hybrid-search/
+
+Meilisearch thoughts on semantic search vs. keyword search:
+https://github.com/meilisearch/meilisearch/issues/3838
+
+## Neural search frameworks
+
+Jina, Haystack and txtai
 
 
 [^1]: Revolution in NLP is changing the way companies understand text, [TechCrunch](https://techcrunch.com/sponsor/nvidia/how-the-revolution-of-natural-language-processing-is-changing-the-way-companies-understand-text/)
+[^2]: Beware tunnel vision in AI retrieval: Colin Harman, [Substack](https://colinharman.substack.com/p/beware-tunnel-vision-in-ai-retrieval)
+[^3]: Vector search for clinical decisions, [Haystack US 2023](https://colinharman.substack.com/i/126262800/haystack-us-erica-lesyshyn-and-max-irwin-vector-search-for-clinical-decisions)
