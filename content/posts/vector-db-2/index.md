@@ -1,5 +1,5 @@
 +++ 
-draft = true
+draft = false
 date = 2023-07-09
 title = "Vector databases (Part 2): Understanding their internals"
 description = "A primer on embeddings, semantic similarity and search"
