@@ -18,7 +18,7 @@ Before going deeper into what vector DBs are, what can explain this frenzy of ac
 
 ### The age of Large Language Models (LLMs)
 
-In November 2022, an early demo of ChatGPT (which is OpenAI's interface to GPT 3.5 and above) was released, following which it quickly became the [fastest growing application in history](https://www.forbes.com/sites/cindygordon/2023/02/02/chatgpt-is-the-fastest-growing-ap-in-the-history-of-web-applications/), gaining a million users in just 5 days 🤯! Indeed, if you look at the ✨ history on GitHub for some of the major open-source vector database repos, it's clear that there were sharp spikes in the star counts for some of them _after_ the release of ChatGPT in November 2022 and the subsequent release of [ChatGPT plugins](https://openai.com/blog/chatgpt-plugins) in March 2023. These factors, and their associated posts in websites like Hacker News and popular media[^1], are a large part of why there's been such a lot of hype in this space.
+In November 2022, an early demo of ChatGPT (which is OpenAI's interface to GPT 3.5 and above) was released, following which it quickly became the [fastest growing application in history](https://www.forbes.com/sites/cindygordon/2023/02/02/chatgpt-is-the-fastest-growing-ap-in-the-history-of-web-applications/), gaining a million users in just 5 days 🤯! Indeed, if you look at the ✨ history on GitHub for some of the major open-source vector database repos, it's clear that there were sharp spikes in the star counts for some of them _after_ the release of ChatGPT in November 2022 and the subsequent release of [ChatGPT plugins](https://openai.com/blog/chatgpt-plugins) in March 2023. These factors, and their associated posts in websites like Hacker News and popular media[^1], are a large part of why there's been such a lot of activity in this space.
 
 {{< figure src="vector-db-stars.png" caption="Made with ❤️ by [star-history.com](https://star-history.com/#qdrant/qdrant&weaviate/weaviate&milvus-io/milvus&chroma-core/chroma&Date)">}}
 
@@ -30,11 +30,11 @@ LLMs are _generative_, meaning that they produce meaningful, coherent text in a 
 - LLMs learn/memorize a compressed version of their training data, and although they learn quite well, they don't do so _perfectly_ -- some information is always "lost" in a model's internal representation of the data
 - An LLM cannot know facts that occurred after its training was completed
 
-Vector databases help address these problems, via their highly efficient underlying storage layer that can be made easily accessible to an LLM that can then retrieve facts. Unlike traditional databases, vector DBs utilize data structures that natively represent data as vectors. As a result, we can now build applications with an LLM sitting on top of a vector storage layer that contains recent, up-to-date, factual data (well past the LLM's training date) and use them to "ground" the model, alleviating the hallucination problem.
+Vector databases help address these problems, by functioning as the underlying storage layer that can be efficiently queried by an LLM to retrieve facts. Unlike traditional databases, vector DBs specialize in natively representing data as vectors. As a result, we can now build applications with an LLM sitting on top of a vector storage layer that contains recent, up-to-date, factual data (well past the LLM's training date) and use them to "ground" the model, alleviating the hallucination problem.
 
 Although vector databases (e.g., Vespa, Weaviate, Milvus) have existed well before LLMs, since the release of ChatGPT, the open-source community, as well as marketing teams at the vector DB vendors quickly realized their potential in mainstream use cases like search & retrieval in combination with high-quality text generation. This explains the absolute bonanza of VC funding in the world of vector databases!
 
-## What is a vector embedding?
+## What are embeddings?
 
 A vector database stores not only the original data (which could be images, audio or text), but also its encoded form: _embeddings_. These embeddings are essentially lists of numbers (i.e., vectors) that store contextual representations of the data. Intuitively, when we refer to an "embedding", we are talking about a **compressed**, low-dimensional representation of data (images, text, audio) that actually exists in higher dimensions.
 
@@ -47,7 +47,7 @@ Within the storage layer, the database stacks $m$ vectors, each representing a d
 
 The transformer revolution in NLP[^2] has provided engineers with ample means to generate these compressed representations, or embeddings very efficiently, and at scale.
 
-- The most popular method is via the open source library `sentence-transformers`, available via the [Hugging Face model hub](https://huggingface.co/models?library=sentence-transformers) or directly from [the source repo](https://www.sbert.net/)
+- A popular method is via the open source library `sentence-transformers`, available via the [Hugging Face model hub](https://huggingface.co/models?library=sentence-transformers) or directly from [the source repo](https://www.sbert.net/)
 - Another (more expensive) method is to use one of many API services:
    - [OpenAI embeddings API](https://platform.openai.com/docs/guides/embeddings)
    - [Cohere embeddings API](https://cohere.com/embed)
@@ -60,7 +60,7 @@ The choice of embedding model is typically a trade-off between quality and cost.
 
 ## Storing the embeddings in vector databases
 
-Because of their amenability to operating in embedding space, vector databases are proving to be very useful for _semantic or similarity-based search_ for all forms of inputs (text, image, audio). This form of search considers semantics, where the input query sent by the user (typically in natural language) is translated into vector form, in the same embedding space as the data itself, so that the top-k results that are most similar to the input query are returned. A visualization of this is shown below.
+Because of their amenability to operating in embedding space, vector databases are proving to be very useful for _semantic or similarity-based search_ for multiple forms of data (text, image, audio). In semantic search, the input query sent by the user (typically in natural language) is translated into vector form, in the same embedding space as the data itself, so that the top-k results that are most similar to the input query are returned. A visualization of this is shown below.
 
 {{< figure src="embedding-pipeline.png">}}
 
@@ -83,15 +83,15 @@ A visualization will make this more intuitive.
 
 On the left, the two wines (the Reserve White and the Toscana Red) have very little in common, both in terms of vocabulary and concepts, so they have a cosine distance approaching zero (they are orthogonal in the vector space). On the right, the two Zinfandels from Napa Valley have a lot more in common, so they have a much larger cosine similarity closer to 1. The limiting case here would be a cosine distance of 1; a sentence is always perfectly similar to itself.
 
-Of course, in a real situation, the actual vector space is high dimensional (and have many more axes other than just the variety of wine) and cannot be visualized on a 2-D plane, but the same principle of cosine similarity applies.
+Of course, in a real situation, the actual data exists in higher dimensional vector space (and has many more axes than just the variety of wine) and cannot be visualized on a 2-D plane, but the same principle of cosine similarity applies.
 
 ## Scalable nearest neighbour search
 
-Once the vector embeddings are generated and stored, when a user submits a search query, the goal of similarity search is to provide the top-k most similar vectors that match the vector-form of the input query. Once again, we can visualize this in a simplified 2-D vector space.
+Once the vectors are generated and stored, when a user submits a search query, the goal of similarity search is to provide the top-k most similar vectors to the input query's own vector. Once again, we can visualize this in a simplified 2-D space.
 
 {{< figure src="knn.png">}}
 
-The most naive way to do this is to compare the query vector with each and every vector in the database, with the so-called k-nearest neighbour (kNN) method. However, **this quickly becomes way too expensive** as we scale to millions (or billions) of vectors, as the number of comparisons required keeps increasing linearly with the data.
+The most naive way to do this would be to compare the query vector with each and every vector in the database, with the so-called k-nearest neighbour (kNN) method. However, **this quickly becomes way too expensive** as we scale to millions (or billions) of data points, as the number of comparisons required keeps increasing linearly with the data.
 
 ### Approximate nearest neighbours (ANN)
 
@@ -99,16 +99,19 @@ Every existing vector database focuses on making search highly efficient, regard
 
 ## Indexing
 
-Data is stored in a vector database via _indexing_, which refers to the act of creating index data structures that efficiently look up vectors by rapidly narrowing down on the search space. The embedding models used to store the data as vectors typically have a relatively high dimensionality (of the order of $10^2$ or $10^3$), so ANN algorithms attempt to generate lower dimensional representations that capture the actual complexity of the data as efficiently as possible in time and space.
+Data is stored in a vector database via _indexing_, which refers to the act of creating data structures called indexes that allow efficient lookup for vectors by rapidly narrowing down on the search space. The embedding models used typically stores vectors with a dimensionality of the order of $10^2$ or $10^3$, and ANN algorithms attempt to capture the actual complexity of the data as efficiently as possible in time and space.
 
-There are many indexing algorithms that power ANN search, and their details are out of the scope of this post (I'll be studying these in future posts).
+There are many indexing algorithms used in the various vector DBs available, and their details are out of the scope of this post (I'll be studying these in future posts). But for reference, some of them are listed below.
 
-- Locally Sensitive Hashing (LSH)
 - Inverted File Index (IVF)
 - Hierarchical Navigable Small World (HNSW) graphs
 - Vamana (utilized in the DiskANN implementation)
 
-In a nutshell, the state-of-the-art in indexing and ANN search quality is achieved by newer algorithms like HNSW and Vamana, but few database vendors offer the DiskANN implementation of Vamana (as of today).
+In a nutshell, the state-of-the-art in indexing is achieved by newer algorithms like HNSW and Vamana, but only a few database vendors offer the DiskANN implementation of Vamana (as of 2023):
+
+- Milvus
+- Weaviate (work in progress...)
+- LanceDB (work in progress...)
 
 ## Putting it all together
 
@@ -116,23 +119,23 @@ We can combine all the above ideas to form a mental picture of what a vector dat
 
 {{< figure src="vector-db-components.png">}}
 
-Depending on the database in question, the storage layer may be local (for embedded databases or vector stores like FAISS), or on the cloud (Pinecone, Milvus, etc.). Typically, an API gateway and load balancer sits between the application layer and the storage layer. The specifics of how each of these are implemented are not important for practitioners -- it's up to each database vendor to architect the system considering the trade-offs between latency, cost and scalability.
+The specifics of how each database vendor achieves scalability (via Kubernetes, sharding, streaming and so on) are not important for practitioners -- it's up to each vendor to architect the system considering the trade-offs between latency, cost and scalability.
 
 ### Storage layer and data ingestion
-- The data of interest, which sits anywhere (locally or on the cloud) is fed to an embedding model, and ingested into the storage layer of a vector DB via the API gateway
+- The data that sits somewhere (locally or on the cloud) is passed to an embedding model, converted to vector form and ingested into the storage layer of a vector DB via the API gateway
 - The data is indexed, during which it's partitioned/sharded for scalability and faster lookups
 - The query engine is tightly integrated with the storage layer, to allow for rapid retrieval of nearest neighbours via the database's ANN implementation
 
 ### Application layer
-- A human sends a human-understandable language query via an application's UI to the embedding model, which converts the input query to a vector and sends it to the query engine via the API gateway
-  - The embedding model used by the application layer must be the same as the one used to index the data, to ensure that the two sets of vectors are in the same embedding space
-- The query engine handles multiple incoming queries asynchronously, and sends the top-k results back to the human
+- A user sends a query via an application's UI to the embedding model, which converts the input query to a vector that lies in the same embedding space as the data
+- The vectorized query is sent to the query engine via the API gateway
+    - Multiple incoming queries are handled asynchronously, and the top-k results are sent back to the user
 
 ---
 
 ## Extending vector databases to serve other functions
 
-The use case above shows how vector DBs enable semantic search at a scale that was not possible several years ago, unless you were a big tech company with massive resources. However, this is just the tip of the iceberg: vector DBs can be used to power a host of downstream functions.
+The use case above shows how vector DBs enable semantic search at a scale that was not possible several years ago, unless you were a big tech company with massive resources. However, this is just the tip of the iceberg: vector DBs are used to power a host of downstream functions.
 
 ### Hybrid search systems
 
@@ -143,18 +146,17 @@ However, pure keyword search also has its own limitations -- in case the user en
 To summarize the points above:
 - __Keyword search__: Finds relevant, useful results when the user _knows_ what they're looking for and expects results that match exact phrases in their search terms. Does **not** require vector databases.
 - __Vector search__: Finds relevant results when the user _doesn't_ know what exactly they're looking for. Requires a vector database.
-- __Hybrid keyword + vector search__: Typically combines candidate results from full-text keyword and vector searches and re-ranks them using cross-encoder models (see below). Requires both a document database and a vector database.
+- __Hybrid keyword + vector search__: Typically combines candidate results from full-text keyword and vector searches and re-ranks them using cross-encoder models[^5] (see below). Requires both a document database and a vector database.
 
 This can be effectively visualized per the diagram below:
 
 {{< figure src="vector-hybrid-search.png" caption="Diagram inspired by [Qdrant blog post](https://qdrant.tech/articles/hybrid-search/)" >}}
 
-BM25[^5] is the most common indexing algorithm used for keyword search in certain databases (e.g., Elasticsearch, Opensearch, MongoDB). It produces a _sparse_ vector, by considering keyword term frequencies in relation to their inverse document frequency (IDF). In contrast, vector databases typically encode and store text in embeddings represented by _dense_ vectors (none of the terms in the vector are zero, unlike BM25), and this is typically done via a bi-encoder model like BERT, that produces a sentence embedding for a pair of documents, that can then be compared to produce a cosine similarity score.
+BM25[^6] is the most common indexing algorithm used for keyword search in certain databases (e.g., Elasticsearch, Opensearch, MongoDB). It produces a _sparse_ vector, by considering keyword term frequencies in relation to their inverse document frequency (IDF). In contrast, vector databases typically encode and store text in embeddings represented by _dense_ vectors (none of the terms in the vector are zero, unlike BM25), and this is typically done via a bi-encoder model like BERT, that produces a sentence embedding for a pair of documents, that can then be compared to produce a cosine similarity score.
 
 #### Understanding the difference between bi-encoders and cross-encoders
 
 To effectively perform hybrid search, it becomes necessary to combine search result candidates obtained via BM25 (keyword search) and cosine similarity (vector search), which requires a _cross-encoder_. This is a downstream step, as shown in the image below, that allows two sentences to be simultaneously passed to an encoder model like BERT. Unlike the bi-encoder that's used to produce sentence embeddings, a cross-encoder doesn't produce embeddings, but rather, it allows us to classify a pair of sentences by assigning them a score between 0 and 1, via a softmax layer. This is termed **_re-ranking_**, and is a very powerful approach to obtaining results that combine the best of both worlds (keyword + vector search).
-
 
 {{< figure src="vector-encoders.png" caption="Diagram inspired by [Sentence transformers docs](https://www.sbert.net/examples/applications/cross-encoder/README.html)" >}}
 
@@ -164,7 +166,7 @@ It should be noted that re-ranking via cross-encoders is an expensive step, as i
 
 ## Generative QA: "Chatting with your data"
 
-With the advent of powerful LLMs like GPT-4, we can effectively integrate the user experience of an application with clean, factual information stored in a vector DB, allowing the user to query their data via natural language. Because question-answering can involve more than just information retrieval (it may require parts of the data to be analyzed, not just queried), including an agent-based framework like LangChain[^6] can be very helpful for these workflows.
+With the advent of powerful LLMs like GPT-4, we can effectively integrate the user experience of an application with clean, factual information stored in a vector DB, allowing the user to query their data via natural language. Because question-answering can involve more than just information retrieval (it may require parts of the data to be analyzed, not just queried), including an agent-based framework like LangChain[^7] in between the application UI and the vector DB can be much more powerful than just plugging into the vector DB directly.
 
 {{< figure src="vector-db-qa.png" >}}
 
@@ -179,13 +181,14 @@ Because vector DBs store the data to be queried as embeddings, and the LLM also 
 5. The LLM searches the top-k results for the information, and produces an answer to the question
 6. The answer is sent back to the human
 
-The above workflow can be extended in many ways, thanks to frameworks like LangChain -- for example, if the question involved some arithmetic on numbers obtained from the database (which LLMs are notoriously bad at), LangChain could pass the numerical information extracted from the top-k results to a calculator API, perform the calculations, and then send the answer back to the user. With such composable workflows, it's easy to see how powerful, generative QA chat interfaces can be developed with ease using vector databases.
+The above workflow can be extended in many ways -- for example, if the user's question involved some arithmetic on numbers obtained from the database (which LLMs are notoriously bad at), a LangChain agent could determine, first, that arithmetic is required. It would then pass the numerical information extracted from the top-k results to a calculator API, perform the calculations, and then send the answer back to the user. With such composable workflows, it's easy to see how powerful, generative QA chat interfaces are enabled by vector DBs.
 
 ## Conclusions
 
 There are many other useful applications that can be built combining the inherent power of LLMs and vector DBs. However, it's important to understand some the underlying limitations of vector DBs:
-- They do not necessarily care about exact keyword phrase matches when it comes to search.
-- The data being stored and queried in vector databases must fit inside the maximum sequence length of the embedding model used (for BERT-like models, this is no longer than  a few hundred words). Currently, the best way to do so is to utilize frameworks like LangChain and LlamaIndex[^7] to chunk or squash the data into a fixed-sized vector that fits into the underlying model's context.
+
+- They do not necessarily prioritize exact keyword phrase matches for relevance in search applications.
+- The data being stored and queried in vector databases must fit inside the maximum sequence length of the embedding model used (for BERT-like models, this is no longer than a few hundred words). Currently, the best way to do so is to utilize frameworks like LangChain and LlamaIndex[^8] to chunk or squash the data into a fixed-sized vector that fits into the underlying model's context.
 
 Vector databases are incredibly powerful, but the bottom line, per Harman[^3], applies to all of them:
 
@@ -197,11 +200,11 @@ Just like in any other domain, clearly defining the business case and studying t
 
 In the next post, I'll go deeper into the technical aspects of indexing algorithms as used by the various DB vendors, and where the technology is headed.
 
-
 [^1]: The rise of vector databases, [Forbes](https://www.forbes.com/sites/adrianbridgwater/2023/05/19/the-rise-of-vector-databases/?sh=7014b16514a6)
 [^2]: Revolution in NLP is changing the way companies understand text, [TechCrunch](https://techcrunch.com/sponsor/nvidia/how-the-revolution-of-natural-language-processing-is-changing-the-way-companies-understand-text/)
 [^3]: Beware tunnel vision in AI retrieval: Colin Harman, [Substack](https://colinharman.substack.com/p/beware-tunnel-vision-in-ai-retrieval)
 [^4]: Vector search for clinical decisions, [Haystack US 2023](https://colinharman.substack.com/i/126262800/haystack-us-erica-lesyshyn-and-max-irwin-vector-search-for-clinical-decisions)
-[^5]: Okapi BM25, [Wikipedia](https://en.wikipedia.org/wiki/Okapi_BM25)
-[^6]: LangChain docs, [python.langchain.com](https://python.langchain.com/docs/get_started/introduction.html)
-[^7]: LlamaIndex [docs](https://gpt-index.readthedocs.io/en/latest/index.html)
+[^5]: On hybrid search, [Qdrant blog](https://qdrant.tech/articles/hybrid-search/)
+[^6]: Okapi BM25, [Wikipedia](https://en.wikipedia.org/wiki/Okapi_BM25)
+[^7]: LangChain docs, [python.langchain.com](https://python.langchain.com/docs/get_started/introduction.html)
+[^8]: LlamaIndex [docs](https://gpt-index.readthedocs.io/en/latest/index.html)
