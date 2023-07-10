@@ -42,15 +42,14 @@ Within the storage layer, the database stacks $m$ vectors, each representing a d
 
 {{< figure src="vector-embedding.png" >}}
 
-
 ## How are embeddings generated?
 
 The transformer revolution in NLP[^2] has provided engineers with ample means to generate these compressed representations, or embeddings very efficiently, and at scale.
 
 - A popular method is via the open source library `sentence-transformers`, available via the [Hugging Face model hub](https://huggingface.co/models?library=sentence-transformers) or directly from [the source repo](https://www.sbert.net/)
 - Another (more expensive) method is to use one of many API services:
-   - [OpenAI embeddings API](https://platform.openai.com/docs/guides/embeddings)
-   - [Cohere embeddings API](https://cohere.com/embed)
+  - [OpenAI embeddings API](https://platform.openai.com/docs/guides/embeddings)
+  - [Cohere embeddings API](https://cohere.com/embed)
 
 It's important to keep in mind that the lower the dimensionality of the underlying vectors, the more compact the representation is in embedding space, which can affect downstream task quality. Sentence Transformers (sbert) provides embedding models with a dimension $n$ in the range of 384, 512 and 768, and the models are completely free and open-source. OpenAI and Cohere embeddings, which require a paid API call to generate them, can be considered higher quality due to a dimensionality of a few thousand. One reason it makes sense to use a paid API to generate embeddings is if your data is multilingual (Cohere is known to possess high-quality multilingual embedding models that [are known to perform better](https://docs.cohere.com/docs/multilingual-language-models#model-performance) than open source variants).
 
@@ -68,8 +67,8 @@ Because of their amenability to operating in embedding space, vector databases a
 
 The various vector databases offer different metrics to compute similarity, but for text, the following two metrics are most commonly used:
 
-- __Dot product__: This produces a non-normalized value of an arbitrary magnitude
-- __Cosine distance__: This produces a normalized value (between -1 and 1)
+- **Dot product**: This produces a non-normalized value of an arbitrary magnitude
+- **Cosine distance**: This produces a normalized value (between -1 and 1)
 
 ### An example of measuring cosine distance
 
@@ -95,7 +94,7 @@ The most naive way to do this would be to compare the query vector with each and
 
 ### Approximate nearest neighbours (ANN)
 
-Every existing vector database focuses on making search highly efficient, regardless of the size of the dataset, via a class of algorithms called __Approximate Nearest Neighbour__ (ANN) search. Instead of performing an exhaustive comparison between every vector in the database, an approximate search is performed for nearest neighbours, resulting in some loss of accuracy in the result (the _truly_ nearest neighbour may not always be returned), but a massive performance gain is possible using ANN algorithms.
+Every existing vector database focuses on making search highly efficient, regardless of the size of the dataset, via a class of algorithms called **Approximate Nearest Neighbour** (ANN) search. Instead of performing an exhaustive comparison between every vector in the database, an approximate search is performed for nearest neighbours, resulting in some loss of accuracy in the result (the _truly_ nearest neighbour may not always be returned), but a massive performance gain is possible using ANN algorithms.
 
 ## Indexing
 
@@ -122,14 +121,16 @@ We can combine all the above ideas to form a mental picture of what a vector dat
 The specifics of how each database vendor achieves scalability (via Kubernetes, sharding, streaming and so on) are not important for practitioners -- it's up to each vendor to architect the system considering the trade-offs between latency, cost and scalability.
 
 ### Storage layer and data ingestion
+
 - The data that sits somewhere (locally or on the cloud) is passed to an embedding model, converted to vector form and ingested into the storage layer of a vector DB via the API gateway
 - The data is indexed, during which it's partitioned/sharded for scalability and faster lookups
 - The query engine is tightly integrated with the storage layer, to allow for rapid retrieval of nearest neighbours via the database's ANN implementation
 
 ### Application layer
+
 - A user sends a query via an application's UI to the embedding model, which converts the input query to a vector that lies in the same embedding space as the data
 - The vectorized query is sent to the query engine via the API gateway
-    - Multiple incoming queries are handled asynchronously, and the top-k results are sent back to the user
+  - Multiple incoming queries are handled asynchronously, and the top-k results are sent back to the user
 
 ---
 
@@ -144,9 +145,10 @@ In his excellent review post[^3], Colin Harman describes how a lot of companies,
 However, pure keyword search also has its own limitations -- in case the user enters a term that is semantically similar to the stored data (but is not exact), potentially useful and relevant results are not returned. As a result of this trade-off, real-world use cases for search & retrieval demand a combination of keyword and vector searches, **of which vector databases form a key component** (because they house the embeddings, enabling semantic similarity search and are able to scale to very large datasets).
 
 To summarize the points above:
-- __Keyword search__: Finds relevant, useful results when the user _knows_ what they're looking for and expects results that match exact phrases in their search terms. Does **not** require vector databases.
-- __Vector search__: Finds relevant results when the user _doesn't_ know what exactly they're looking for. Requires a vector database.
-- __Hybrid keyword + vector search__: Typically combines candidate results from full-text keyword and vector searches and re-ranks them using cross-encoder models[^5] (see below). Requires both a document database and a vector database.
+
+- **Keyword search**: Finds relevant, useful results when the user _knows_ what they're looking for and expects results that match exact phrases in their search terms. Does **not** require vector databases.
+- **Vector search**: Finds relevant results when the user _doesn't_ know what exactly they're looking for. Requires a vector database.
+- **Hybrid keyword + vector search**: Typically combines candidate results from full-text keyword and vector searches and re-ranks them using cross-encoder models[^5] (see below). Requires both a document database and a vector database.
 
 This can be effectively visualized per the diagram below:
 
@@ -193,6 +195,7 @@ There are many other useful applications that can be built combining the inheren
 Vector databases are incredibly powerful, but the bottom line, per Harman[^3], applies to all of them:
 
 > If you're not very knowledgeable about vector databases, and in general, the search and information retrieval space, the following materials **should NOT** be your primary sources of information for any kind of decision-making on choosing your tech stack:
+>
 > - Infrastructure stacks from super-smart VCs
 > - Tutorials from popular LLM application frameworks
 
