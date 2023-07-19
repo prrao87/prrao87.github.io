@@ -10,7 +10,7 @@ paginate = 20
 [markup.highlight]
   style = "github-dark"
 [markup.tableOfContents]
-  endLevel = 3
+  endLevel = 4
   ordered = false
   startLevel = 1
 
