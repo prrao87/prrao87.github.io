@@ -1,7 +1,7 @@
 +++ 
 draft = true
 date = 2023-07-18
-title = "Vector databases (Part 3): A deep dive into vector indexes"
+title = "Vector databases (Part 3): Not all vector indexes are created equal"
 description = "Understanding Flat, Annoy, IVF, HNSW and Vamana vector indexes in vector databases"
 tags = ["vector-db"]
 categories = ["databases"]
@@ -10,41 +10,41 @@ math = true
 
 # Organizing vector indexes
 
-This is my third post in a series on vector databases. [Part 1](../vector-db-1/) covered the differences between various popular vector DB vendors in the market, while [Part 2](../vector-db-2/) focused on the basics of what vector DBs are and what they do. If you've been following the developments in the world of vector DBs of late, you'll agree that it's actually quite hard to gain a bigger picture understanding of the landscape and the underlying trade-offs, unless you're willing to put in a *lot* of time and effort reading through a host of blog posts, papers and marketing material out there. My hope is that this series of blog posts helps you collate the vast amount of knowledge scattered across these sources and make an informed decision on which vector DB, and its underlying index, to use for your use case.
+This is my third post in a series on vector databases. [Part 1](../vector-db-1/) compared the offerings of various DB vendors and how they are different at a high level, while [Part 2](../vector-db-2/) focused on the basics of what vector DBs are and what they do. You may have already come across the excellent post "*Not all vector databases are made equal*"[^1] by Dmitry Kan, which covered the differences between various vector DBs in the market as of 2021. The landscape has been continuously evolving since then, and because each DB is actually quite different in its internals, I thought it made sense to do a deep dive into indexes, a key component of vector search.
 
-Assuming that it's amply clear to you [what a vector database *is*](../vector-db-2/#putting-it-all-together), it's worth taking a step back to wonder, how does it all scale so wonderfully to millions, billions, or even trillions of vectors[^1]? The primary aim of a vector database is to provide a fast and efficient means to store and *semantically* query data, in a way that the `Vector` data type is a first-class citizen. The similarity between two vectors is gauged by distance metrics like cosine distance or the dot product. When working with vector databases, it's important to distinguish between the *search algorithm*, and the underlying *index* on which the Approximate Nearest Neighbour (ANN) search algorithm operates.
+Assuming that it's amply clear to you [what a vector database *is*](../vector-db-2/#putting-it-all-together), it's worth taking a step back to wonder, how does it all scale so wonderfully to be able to search millions, billions, or even trillions of vectors[^2]? The primary aim of a vector database is to provide a fast and efficient means to store and *semantically* query data, in a way that the `Vector` data type is a first-class citizen. The similarity between two vectors is gauged by distance metrics like cosine distance or the dot product. When working with vector databases, it's important to distinguish between the *search algorithm*, and the underlying *index* on which the Approximate Nearest Neighbour (ANN) search algorithm operates.
 
-As in most situations, choosing a vector index involves a tradeoff between accuracy (precision/recall) and throughput, and this is where understanding the various indexing algorithms out there helps you make a more informed decision. Having scoured the literature, I find that vector indexing methods can be organized in two levels: by their data structures, and by their level of compression.
+As in most situations, choosing a vector index involves a tradeoff between accuracy (precision/recall) and speed/throughput. Having scoured the literature, I find that vector indexing methods can be organized in two levels: by their data structures, and by their level of compression. These classifications are by no means exhaustive, and many sources online disagree on the "right" way to organize the various indexes, so, this is my best attempt at making sense of it all. 😅
 
 ## Level 1: Data structures
 
-At the top level, vector indexes can be organized by their underlying data structures as follows.
+It helps to start by organizing indexes based on the data structures that are used to construct them. This is best explored visually.
 
-{{< figure src="vector-db-indexing-types.png" >}}
+{{< figure src="vector-db-indexing-types.png" caption="Breaking down vector indexes by their underlying data structures">}}
 
 ### Hash-based index
 
-Hash-based indexes like LSH (Locally Sensitive Hashing) transform higher dimensional data into lower-dimensional hash codes that aim to keep the original similarity as far as possible. The main focus of this indexing method is to design hash functions that generate better hash codes, which can then be looked up very efficiently to find similar neighbours. The main advantage of hash-based indexes is that they are very fast and scale to huge amounts of data, but the downside is that they are not very accurate.
+Hash-based indexes like LSH (Locally Sensitive Hashing) transform higher dimensional data into lower-dimensional hash codes that aim to keep the original similarity as much as possible. During indexing, the dataset is hashed multiple times to ensure that similar points are more likely to collide (which is the opposite of conventional hashing techniques, where the goal is to minimize collisions). During querying, the query point is also hashed using the same hash functions as used during indexing, and because the similar points are assigned to the same hash bucket, retrieval is very fast. The main advantage of hash-based indexes is that they are very fast while scaling to huge amounts of data, but the downside is that they are not very accurate.
 
 ### Tree-based index
 
-Tree-based index structures allow for rapid searches in high-dimensional spaces, via binary search trees. The tree is constructed in a way that similar data points are more likely to end up in the same subtree, making it much faster to discover approximate nearest neighbours. **Annoy** (Approximate Nearest Neighbours Oh Yeah) was such a method developed at Spotify, and was designed specifically to handle music recommendations on their vast collection of songs. The downside of tree-based indexes is that they perform reasonably well only for low-dimensional data, and are not very accurate for high-dimensional data because they cannot adequately capture the complexity of the data.
+Tree-based index structures allow for rapid searches in high-dimensional spaces, via binary search trees. The tree is constructed in a way that similar data points are more likely to end up in the same subtree, making it much faster to discover approximate nearest neighbours. **Annoy** (Approximate Nearest Neighbours Oh Yeah) was such a method that uses a forest of binary search trees, developed at Spotify. The downside of tree-based indexes is that they perform reasonably well only for low-dimensional data, and are not very accurate for high-dimensional data because they cannot adequately capture the complexity of the data.
 
 ### Graph-based index
 
-Graph-based indexes like **HNSW** (Hierarchical Navigable Small World) are based on the idea that data points in vector space organized as a graph, where the nodes represent the data values, and edges connecting the nodes represent the similarity between the data points. The graph is constructed in a way that similar data points are more likely to be connected by edges, and the ANN search algorithm is designed to traverse the graph in an efficient manner. The main advantage of graph-based indexes is that they are very efficient in finding approximate nearest neighbours in diverse directions, and can exist almost entirely in memory, making them a great compromise between accuracy and speed.
+Graph-based indexes are based on the idea that data points in vector space form a graph, where the nodes represent the data values, and edges connecting the nodes represent the similarity between the data points. The graph is constructed in a way that similar data points are more likely to be connected by edges, and the ANN search algorithm is designed to traverse the graph in an efficient manner. The main advantage of graph-based indexes, is that they are able to find approximate nearest neighbours in high-dimensional data, while also being memory efficient, increasing performance. HNSW and Vamana, explained below, are examples of graph-based indexes.
 
-One other index, NGT[^2] (Neighbourhood Graphs and Trees), developed by Yahoo! Japan Corporation, performs two constructions during indexing: one that transforms a dense kNN graph into a bidirectional graph, and another that incrementally constructs a navigable small world graph. The difference from HNSW is the use of range search, a variant of greedy search during graph construction. Because both of these methods have a high outward degree, to avoid combinatorial explosion, the seed vertex from which a search originates uses another range search on a tree-like structure (Vantage-point, or 'VP' trees) to make the search more efficient. This makes NGT a hybrid graph-tree index.
+An extension of graph-based indexes to include concepts from tree-based indexes is NGT[^3] (Neighbourhood Graphs and Trees). Developed by Yahoo! Japan Corporation, it performs two constructions during indexing: one that transforms a dense kNN graph into a bidirectional graph, and another that incrementally constructs a navigable small world (NSW) graph. Where it differs from pure graph-based indexes is in its use of range search via a tree-like structure (Vantage-point, or 'VP' trees), a variant of greedy search during graph construction. Because both constructions result in nodes that have a high outward degree, to avoid combinatorial explosion, the seed vertex from which the search originates uses the range search to make the traversal more efficient. This makes NGT a hybrid graph and tree-based index.
 
 ### Inverted file index
 
-Inverted file index (IVF) is an indexing method that divides the vector space into a number of tessellated (Voronoi) cells, which reduces the search space in the same way that clustering does -- in order to find the nearest neighbours, the ANN algorithm must simply locate the centroid of the nearest Voronoi cell, and then search only within that cell. The benefit of IVF is that it helps design ANN algorithms that rapidly narrow down on the similarity region of interest, but the disadvantage of IVF in its raw form is that the quantization step involved in tessellating the vector space can be slow for very large amounts of data, which is why it is commonly combined with quantization methods like product quantization (PQ) to improve performance, described below.
+Inverted file index (IVF) divides the vector space into a number of tessellated cells, called Voronoi diagrams -- these reduce the search space in the same way that clustering does. In order to find the nearest neighbours, the ANN algorithm must simply locate the centroid of the nearest Voronoi cell, and then search only within that cell. The benefit of IVF is that it helps design ANN algorithms that rapidly narrow down on the similarity region of interest, but the disadvantage in its raw form is that the quantization step involved in tessellating the vector space can be slow for very large amounts of data. As a result, IVF is commonly combined with quantization methods like product quantization (PQ) to improve performance, described below.
 
 ## Level 2: Compression
 
-The second level on which indexes are broken down is their compression level: a "flat" index is one that stores vectors in their unmodified form. When a query vector is received, it is exhaustively compared against each and every vector in the database, as shown in the simplified example below in 3-D vector space. In essence, using a true flat index would be like doing a kNN search, where the returned results are exact matches with the $k$ nearest neighbouring vectors. As you can imagine, the time required to return results using a flat index would increase linearly with the size of the data, making it impractical when used on more than a few hundred thousand vectors.
+The second level on which indexes can be organized is their compression level: a "flat" or brute force index is one that stores vectors in their unmodified form. When a query vector is received, it is exhaustively compared against each and every vector in the database, as shown in the simplified example below in 3-D space. In essence, using such an index would be like doing a kNN search, where the returned results are exact matches with the $k$ nearest neighbouring vectors. As you can imagine, the time required to return results would increase linearly with the size of the data, making it impractical when applied on a dataset with more than a few hundred thousand vectors.
 
-{{< figure src="vector-db-flat-index.png" caption="Flat index for kNN (exhaustive) search: Image inspired from [Pinecone blog](https://www.pinecone.io/learn/series/faiss/vector-indexes/)" >}}
+{{< figure src="vector-db-flat-index.png" caption="Flat index for kNN (exhaustive) search: Image inspired by [Pinecone blog](https://www.pinecone.io/learn/series/faiss/vector-indexes/)" >}}
 
 
 The solution to improve search efficiency, at the cost of some accuracy in the retrieval, is compression. This process is called *quantization*, where the underlying vectors in the index are broken into chunks made up of fewer bytes (typically via converting floats to integers) to reduce memory consumption and computational cost during search.
@@ -53,43 +53,57 @@ The solution to improve search efficiency, at the cost of some accuracy in the r
 
 ### Flat composite indexes
 
-The default index on which an ANN search operates can be termed as "Flat". Unlike a flat index, an existing index like IVF or HNSW is called "flat" when it directly calculates the distance between the query vector and all the vectors in the database. To differentiate this from the quantized variants, the term "flat" is typically associated with these indexes, for example, IVF-Flat.
+When using ANN (non-exhaustive) search, an existing index like IVF or HNSW is termed "flat" when it directly calculates the distance between the query vector and the database vectors in their raw form. To differentiate this from the quantized variants. When used this way, they are called IVF-Flat, HNSW-Flat, and so on.
 
 ### Quantized composite indexes
 
-In contrast, a quantized index is a form of composite index that combines an existing index (IVF, HNSW or Vamana) with compression methods like quantization to reduce the memory footprint of the index. The most popular quantization method is product quantization (PQ), which is a lossy compression technique[^3] that breaks up the original vector into smaller chunks called subvectors, and then stores the subvectors in a way that allows for fast reconstruction of the original vector, massively reducing memory requirements. PQ is not used its own, and instead relies on an existing index to first rapidly narrow down the search space, following which it can be applied to improve search speeds. Examples of these types of composite indexes include IVF-PQ and HNSW-PQ.
+A quantized index is one that combines an existing index (IVF, HNSW, Vamana) with compression methods like quantization to reduce the memory footprint and to speed up search. The quantization is typically one of two types[^4]: Scalar Quantization (SQ), or Product Quantization (PQ). SQ converts the floating-point numbers in a vector to integers (which are much smaller in size in bytes) by symmetrically dividing the vector into bins that account for the minimum and maximum value in each dimension.
 
-For those curious to go deeper, here's the original paper on product quantization for vector search: [*Product quantization for nearest neighbor search*](https://inria.hal.science/inria-00514462v2/document), Jégou & al., PAMI 2011
-
+PQ is a more sophisticated method that considers the distribution of values along each vector dimension, performing *both* compression and data reduction[^4]: The idea behind PQ is to decompose a larger dimensional vector space into a cartesian product of smaller dimensional subspaces by quantizing each subspace into its own clusters -- vectors are represented by short codes, such that the distances between them can be efficiently estimated from their codes, termed *reproduction values*. An asymmetric binning procedure is used (unlike SQ), which increases precision[^5], as it incorporates the distribution of vectors within each subspace as part of the approximate distance estimation. However, there is a trade-off as it does reduce recall quite significantly[^6].
 
 ---
 # Popular indexes
 
-In this section, it makes sense to go through some popular vector indexes in use in existing databases today.
+Among all the indexing methods listed so far, most purpose-built vector databases implement only a select few of them. This is a very rapidly evolving space 🚀, so a lot of information here may be out of date a year from now! But learning the fundamentals can help you know what to make of the technology in its future state, so here goes.
 
 ## IVF-PQ
 
+A common composite index available in databases like Milvus and LanceDB is IVF-PQ. The IVF part of the index is used to narrow down the search space, and the PQ part is used to speed up the distance calculation between the query vector and the database vectors, and to reduce the memory requirements by quantizing the vectors. The great part about combining the two is that the speed is massively improved due to the PQ component, and IVF component helps improve the recall (that is normally compromised) by the PQ component alone.
+
+The PQ component can be broken down as per the diagram below. Each vector representing a data point consists of a fixed number of dimensions $d$ (of the order of hundreds or thousands, depending on the embedding model used upstream). Because storing these many 32 or 64-bit floating point numbers can be quite expensive on a large dataset, product quantization approaches this problem in two stages: the first stage is a coarse quantization stage where the vector is divided into $m$ subvectors, each of dimension $d/m$, and each subvector is assigned a quantized value (termed "reproduction value") that maps the original vectors to the centroid of the points in that subspace[^7].
+
+The second stage is similar to k-means clustering, where a "codebook" of values is learned by minimizing the distance between the original vector and the quantized vector centroids. By mapping a large, high-dimensional vector into smaller, lower-dimensional subvectors, it is only the codebook of quantized values that is stored, making the memory footprint far smaller.
+
+{{< figure src="vector-db-pq.png" caption="Product quantization: Image inspired by [Pinecone blog](https://www.pinecone.io/learn/series/faiss/product-quantization/)" >}}
+
+IVF is then applied to the PQ vector space -- for each point in the space there is a corresponding region, called a [Voronoi cell](https://en.wikipedia.org/wiki/Voronoi_diagram), consisting of all points in the space closer to the source point (seed) than to any other. These seed points are used to create an inverted index that correlates each centroid with a list of vectors in the space.
+
+{{< figure src="vector-db-ivf-cells.png" >}}
+
+Depending on where the query vector lands, it may be close to the border of multiple Voronoi cells, making it ambiguous which cells to return nearest neighbours from, leading to the *edge problem*. As a result, IVF-PQ indexes involve setting an additional parameter, `n_probes`, that tells the search algorithm to expand outward to the number of cells specified by the `n_probes` parameter.
+
+To effectively build an IVF-PQ index, it is necessary to make two choices: the number of subvectors for the PQ step, and the number of partitions for the IVF step. Larger the number of subvectors, the smaller each subspace is, reducing information loss due to compression. However, a larger number of subvectors also results in more I/O and computation within each PQ step, so this number must be minimized to keep computational costs low.
+
+Similarly, the number of partitions in the IVF step must be chosen to balance the trade-off between recall and search speed. The limiting case of number of partitions being equal to the number of vectors in the dataset is *brute force search*, which is the most accurate (recall of 1), but it essentially makes it an IVF-Flat index.
+
+Indeed, the LanceDB IVF-PQ index docs[^8] describe exactly these kinds of trade-offs when creating an index, so it's worth going deeper into these concepts to understand how to apply them in a real world scenario.
+
 ## HNSW
+
+Hierarchical Navigable Small World (HNSW) graphs is among the most popular algorithms for building vector indexes -- as of writing this post, nearly *every* database vendor out there uses it as the primary option. It's also among the most intuitive algorithms out there, and it's highly recommended that you give the [original paper](https://arxiv.org/abs/1603.09320) that introduced it, a read.
 
 ## Vamana
 
 ---
 
-# ANN toolkits
-
-
-## FAISS
-
-## Hnswlib
-
-## DiskANN
-
-
 # Takeaways: What makes a vector database?
 
 
-
-
-[^1]: Trillion-scale similarity, [Milvus blog](https://milvus.io/blog/Milvus-Was-Built-for-Massive-Scale-Think-Trillion-Vector-Similarity-Search.md)
-[^2]: A Comprehensive Survey and Experimental Comparison of Graph-Based Approximate Nearest Neighbor Search, [arxiv.org](https://arxiv.org/pdf/2101.12631.pdf)
-[^3]: Research foundations of FAISS, [docs](https://github.com/facebookresearch/faiss/wiki#research-foundations-of-faiss)
+[^1]: Not All Vector Databases Are Made Equal, [Dmitry Kan on Medium](https://towardsdatascience.com/milvus-pinecone-vespa-weaviate-vald-gsi-what-unites-these-buzz-words-and-what-makes-each-9c65a3bd0696)
+[^2]: Trillion-scale similarity, [Milvus blog](https://milvus.io/blog/Milvus-Was-Built-for-Massive-Scale-Think-Trillion-Vector-Similarity-Search.md)
+[^3]: A Comprehensive Survey and Experimental Comparison of Graph-Based Approximate Nearest Neighbor Search, [arxiv.org](https://arxiv.org/pdf/2101.12631.pdf)
+[^4]: Choosing the right vector index, [Frank Liu on Substack](https://thesequence.substack.com/p/guest-post-choosing-the-right-vector)
+[^5]: Product quantization for nearest neighbor search, [J'egou, Douze & Schmid](https://lear.inrialpes.fr/pubs/2011/JDS11/jegou_searching_with_quantization.pdf)
+[^6]: Scalar Quantization and Product Quantization, [Frank Liu on Zilliz blog](https://zilliz.com/blog/scalar-quantization-and-product-quantization)
+[^7]: Product quantization: Compressing high-dimensional vectors by 97%, [Pinecone blog](https://www.pinecone.io/learn/series/faiss/product-quantization/)
+[^8]: ANN indexes, [LanceDB docs](https://lancedb.github.io/lancedb/ann_indexes/))
