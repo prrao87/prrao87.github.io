@@ -68,7 +68,7 @@ Among all the indexing methods listed so far, most purpose-built vector database
 
 ## IVF-PQ
 
-A common composite index available in databases like Milvus and LanceDB is IVF-PQ. The IVF part of the index is used to narrow down the search space, and the PQ part is used to speed up the distance calculation between the query vector and the database vectors, and to reduce the memory requirements by quantizing the vectors. The great part about combining the two is that the speed is massively improved due to the PQ component, and IVF component helps improve the recall (that is normally compromised) by the PQ component alone.
+IVF-PQ is a composite index available in databases like Milvus and LanceDB. The IVF part of the index is used to narrow down the search space, and the PQ part is used to speed up the distance calculation between the query vector and the database vectors, and to reduce the memory requirements by quantizing the vectors. The great part about combining the two is that the speed is massively improved due to the PQ component, and IVF component helps improve the recall (that is normally compromised) by the PQ component alone.
 
 The PQ component can be broken down as per the diagram below. Each vector representing a data point consists of a fixed number of dimensions $d$ (of the order of hundreds or thousands, depending on the embedding model used upstream). Because storing these many 32 or 64-bit floating point numbers can be quite expensive on a large dataset, product quantization approaches this problem in two stages: the first stage is a coarse quantization stage where the vector is divided into $m$ subvectors, each of dimension $d/m$, and each subvector is assigned a quantized value (termed "reproduction value") that maps the original vectors to the centroid of the points in that subspace[^7].
 
@@ -90,7 +90,28 @@ Indeed, the LanceDB IVF-PQ index docs[^8] describe exactly these kinds of trade-
 
 ## HNSW
 
-Hierarchical Navigable Small World (HNSW) graphs is among the most popular algorithms for building vector indexes -- as of writing this post, nearly *every* database vendor out there uses it as the primary option. It's also among the most intuitive algorithms out there, and it's highly recommended that you give the [original paper](https://arxiv.org/abs/1603.09320) that introduced it, a read.
+Hierarchical Navigable Small-World (HNSW) graphs is among the most popular algorithms for building vector indexes -- as of writing this post, nearly *every* database vendor out there uses it as the primary option. It's also among the most intuitive algorithms out there, and it's highly recommended that you give the [original paper](https://arxiv.org/abs/1603.09320) that introduced it, a read.
+
+At a high level, HNSW builds on top of two key concepts:
+* The [*small world graph*](https://en.wikipedia.org/wiki/Small-world_network) theory
+* Navigable small world (NSW) graphs
+
+The small world graph theory states that even though most nodes in a graph are not neighbours of each other, the *neighbours* of any given nodes are likely to be neighbours of each other, regardless of the size of the graph. Essentially, any node in the graph can be reached from every other node by a relatively small number of steps. In the example below, the solid-filled blue and red nodes can be reached from each other in just 3 hops, even though they might be perceived as distant in the graph.
+
+{{< figure src="vector-db-small-world-graph.png" >}}
+
+The idea with NSW is that the vector space can be thought of as a graph, where the nodes are represented by the vectors, and edges are represented by similarity, i.e., numbers that describe how close two nodes are to each other in vector space. A navigable small world graph algorithm works by constructing an undirected graph that ensures global connectivity, i.e., no nodes are unreachable in the graph. Long edges (connecting nodes that are far apart and require many traversals) are formed first, and short edges (which connect nearby nodes) are formed later on. The long edges improve search *efficiency* and the short edges improve search *accuracy*[^3].
+
+{{< figure src="vector-db-nsw.png" >}}
+
+One of the problems with an NSW is that it is a flat graph, certain nodes can create dense "traffic hubs", reducing the efficiency of the traversal and causing the search complexity of the method to be poly-logarithmic[^9]. HNSW addresses this by generating a *hierarchical* graph and also fixes the upper bound of each node's number of neighbours, reducing the search complexity to logarithmic[^9]. The basic idea is to separate nearest neighbours into layers in the graph based on their distance scale, and the search is iteratively performed from top to bottom. The long edges in the graph are kept in the top layers, and each layer below contains edges that are shorter-distance than the layers above it, with the lowest layer forming the complete graph. If all layers are "collapsed" into one another, the HNSW graph essentially becomes an NSW graph.
+
+{{< figure src="vector-db-hnsw.png" >}}
+
+The image above shows how, given an arbitrary entry point at the top layer, it's possible to rapidly traverse across the graph, dropping one layer at a time, until the nearest neighbour to the query vector is found.
+
+The biggest strength of HNSW over IVF is that it is able to find approximate nearest neighbours in complex, high-dimensional data with a high degree of recall. In fact, at the time of its release ~2019, it produced state-of-the-art results on benchmark datasets specifically with regard to improving recall while also being fast, explaining its immense popularity. However, it is not as memory efficient, unless it is combined with methods like PQ to compress the vectors at search time. Databases like Qdrant and Weaviate, typically implement composite indexes that involve quantization, like HNSW-PQ[^10] for these reasons.
+
 
 ## Vamana
 
@@ -101,9 +122,11 @@ Hierarchical Navigable Small World (HNSW) graphs is among the most popular algor
 
 [^1]: Not All Vector Databases Are Made Equal, [Dmitry Kan on Medium](https://towardsdatascience.com/milvus-pinecone-vespa-weaviate-vald-gsi-what-unites-these-buzz-words-and-what-makes-each-9c65a3bd0696)
 [^2]: Trillion-scale similarity, [Milvus blog](https://milvus.io/blog/Milvus-Was-Built-for-Massive-Scale-Think-Trillion-Vector-Similarity-Search.md)
-[^3]: A Comprehensive Survey and Experimental Comparison of Graph-Based Approximate Nearest Neighbor Search, [arxiv.org](https://arxiv.org/pdf/2101.12631.pdf)
+[^3]: A Comprehensive Survey and Experimental Comparison of Graph-Based Approximate Nearest Neighbor Search, [arxiv.org](https://arxiv.org/abs/2101.12631)
 [^4]: Choosing the right vector index, [Frank Liu on Substack](https://thesequence.substack.com/p/guest-post-choosing-the-right-vector)
 [^5]: Product quantization for nearest neighbor search, [J'egou, Douze & Schmid](https://lear.inrialpes.fr/pubs/2011/JDS11/jegou_searching_with_quantization.pdf)
 [^6]: Scalar Quantization and Product Quantization, [Frank Liu on Zilliz blog](https://zilliz.com/blog/scalar-quantization-and-product-quantization)
 [^7]: Product quantization: Compressing high-dimensional vectors by 97%, [Pinecone blog](https://www.pinecone.io/learn/series/faiss/product-quantization/)
 [^8]: ANN indexes, [LanceDB docs](https://lancedb.github.io/lancedb/ann_indexes/))
+[^9]: Hierarchical Navigable Small-World graphs paper, [Malkov & Yashunin](https://arxiv.org/abs/1603.09320)
+[^10]: HNSW + PQ, [Weaviate blog](https://weaviate.io/blog/ann-algorithms-hnsw-pq)
