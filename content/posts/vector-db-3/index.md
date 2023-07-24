@@ -10,7 +10,7 @@ math = true
 
 # Organizing vector indexes
 
-This is my third post in a series on vector databases. [Part 1](../vector-db-1/) compared the offerings of various DB vendors and how they are different at a high level, while [Part 2](../vector-db-2/) focused on the basics of what vector DBs are and what they do. You may have already come across the excellent post "*Not all vector databases are made equal*"[^1] by Dmitry Kan, which covered the differences between various vector DBs in the market as of 2021. The landscape has been continuously evolving since then, and because each DB is actually quite different in its internals, I thought it made sense to do a deep dive into indexes, a key component of vector search.
+This is my third post in a series on vector databases. [Part 1](../vector-db-1/) compared the offerings of various DB vendors and how they are different at a high level, while [Part 2](../vector-db-2/) focused on the basics of what vector DBs are and what they do. You may have already come across the excellent post "*Not all vector databases are made equal*"[^1] by Dmitry Kan, which covered the differences between various vector DBs in the market back in 2021. The landscape has been continuously evolving since then, and because each DB is different from others in its internals, I thought it made sense to do a deeper dive into indexes, the backbone of vector search.
 
 Assuming that it's amply clear to you [what a vector database *is*](../vector-db-2/#putting-it-all-together), it's worth taking a step back to wonder, how does it all scale so wonderfully to be able to search millions, billions, or even trillions of vectors[^2]? The primary aim of a vector database is to provide a fast and efficient means to store and *semantically* query data, in a way that the `Vector` data type is a first-class citizen. The similarity between two vectors is gauged by distance metrics like cosine distance or the dot product. When working with vector databases, it's important to distinguish between the *search algorithm*, and the underlying *index* on which the Approximate Nearest Neighbour (ANN) search algorithm operates.
 
@@ -111,7 +111,6 @@ One of the problems with an NSW is that it is a flat graph, certain nodes can cr
 The image above shows how, given an arbitrary entry point at the top layer, it's possible to rapidly traverse across the graph, dropping one layer at a time, until the nearest neighbour to the query vector is found.
 
 The biggest strength of HNSW over IVF is that it is able to find approximate nearest neighbours in complex, high-dimensional data with a high degree of recall. In fact, at the time of its release ~2019, it produced state-of-the-art results on benchmark datasets specifically with regard to improving recall while also being fast, explaining its immense popularity. However, it is not as memory efficient, unless it is combined with methods like PQ to compress the vectors at search time. Databases like Qdrant and Weaviate, typically implement composite indexes that involve quantization, like HNSW-PQ[^10] for these reasons.
-
 
 ## Vamana
 
