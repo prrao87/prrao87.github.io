@@ -5,6 +5,7 @@ title = "Vector databases (Part 3): Not all indexes are created equal"
 description = "Understanding Flat, Annoy, IVF, HNSW and Vamana vector indexes in vector databases"
 tags = ["vector-db"]
 categories = ["databases"]
+featuredImage = "vector-db-indexing-types.png"
 math = true
 +++
 
