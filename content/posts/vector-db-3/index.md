@@ -1,7 +1,7 @@
 +++ 
 draft = true
-date = 2023-07-18
-title = "Vector databases (Part 3): Not all vector indexes are created equal"
+date = 2023-07-24
+title = "Vector databases (Part 3): Not all indexes are created equal"
 description = "Understanding Flat, Annoy, IVF, HNSW and Vamana vector indexes in vector databases"
 tags = ["vector-db"]
 categories = ["databases"]
@@ -14,7 +14,7 @@ This is my third post in a series on vector databases. [Part 1](../vector-db-1/)
 
 Assuming that it's amply clear to you [what a vector database *is*](../vector-db-2/#putting-it-all-together), it's worth taking a step back to wonder, how does it all scale so wonderfully to be able to search millions, billions, or even trillions of vectors[^2]? The primary aim of a vector database is to provide a fast and efficient means to store and *semantically* query data, in a way that the `Vector` data type is a first-class citizen. The similarity between two vectors is gauged by distance metrics like cosine distance or the dot product. When working with vector databases, it's important to distinguish between the *search algorithm*, and the underlying *index* on which the Approximate Nearest Neighbour (ANN) search algorithm operates.
 
-As in most situations, choosing a vector index involves a tradeoff between accuracy (precision/recall) and speed/throughput. Having scoured the literature, I find that vector indexing methods can be organized in two levels: by their data structures, and by their level of compression. These classifications are by no means exhaustive, and many sources online disagree on the "right" way to organize the various indexes, so, this is my best attempt at making sense of it all. 😅
+As in most situations, choosing a vector index involves a tradeoff between accuracy (precision/recall) and speed/throughput. Having scoured the literature, I find that vector indexing methods can be organized within two levels: by their data structures, and by their level of compression. These classifications are by no means exhaustive, and many sources disagree on the right way to organize the various indexes, so, this is my best attempt at making sense of it all. Here goes! 😅
 
 ## Level 1: Data structures
 
@@ -92,31 +92,74 @@ Indeed, the LanceDB IVF-PQ index docs[^8] describe exactly these kinds of trade-
 
 Hierarchical Navigable Small-World (HNSW) graphs is among the most popular algorithms for building vector indexes -- as of writing this post, nearly *every* database vendor out there uses it as the primary option. It's also among the most intuitive algorithms out there, and it's highly recommended that you give the [original paper](https://arxiv.org/abs/1603.09320) that introduced it, a read.
 
-At a high level, HNSW builds on top of two key concepts:
-* The [*small world graph*](https://en.wikipedia.org/wiki/Small-world_network) theory
-* Navigable small world (NSW) graphs
-
-The small world graph theory states that even though most nodes in a graph are not neighbours of each other, the *neighbours* of any given nodes are likely to be neighbours of each other, regardless of the size of the graph. Essentially, any node in the graph can be reached from every other node by a relatively small number of steps. In the example below, the solid-filled blue and red nodes can be reached from each other in just 3 hops, even though they might be perceived as distant in the graph.
+At a high level, HNSW builds on top of the [small world graph](https://en.wikipedia.org/wiki/Small-world_network) phenomenon, which states that even though most nodes in a graph are not neighbours of each other, the *neighbours* of any given nodes are likely to be neighbours of each other, regardless of the size of the graph. Essentially, any node in the graph can be reached from every other node by a relatively small number of steps. In the example below, the solid-filled blue and red nodes can be reached from each other in just 3 hops, even though they might be perceived as distant in the graph.
 
 {{< figure src="vector-db-small-world-graph.png" >}}
 
-The idea with NSW is that the vector space can be thought of as a graph, where the nodes are represented by the vectors, and edges are represented by similarity, i.e., numbers that describe how close two nodes are to each other in vector space. A navigable small world graph algorithm works by constructing an undirected graph that ensures global connectivity, i.e., no nodes are unreachable in the graph. Long edges (connecting nodes that are far apart and require many traversals) are formed first, and short edges (which connect nearby nodes) are formed later on. The long edges improve search *efficiency* and the short edges improve search *accuracy*[^3].
+The vector space in which your data lives can also be thought of as a *Navigable* Small World (NSW) graph, where the nodes represent the data points, and edges represent similarities, i.e., numbers that describe how close two nodes are to each other in vector space. NSW works by constructing an undirected graph that ensures global connectivity, i.e., any node can be reached in the graph given an arbitrary entry point. Long edges (connecting nodes that are far apart and require many traversals) are formed first, and short edges (which connect nearby nodes) are formed later on. The long edges improve search *efficiency* and the short edges improve search *accuracy*[^3]. The nearest nodes to a given query vector can be found by traversing this graph.
 
 {{< figure src="vector-db-nsw.png" >}}
 
-One of the problems with an NSW is that it is a flat graph, certain nodes can create dense "traffic hubs", reducing the efficiency of the traversal and causing the search complexity of the method to be poly-logarithmic[^9]. HNSW addresses this by generating a *hierarchical* graph and also fixes the upper bound of each node's number of neighbours, reducing the search complexity to logarithmic[^9]. The basic idea is to separate nearest neighbours into layers in the graph based on their distance scale, and the search is iteratively performed from top to bottom. The long edges in the graph are kept in the top layers, and each layer below contains edges that are shorter-distance than the layers above it, with the lowest layer forming the complete graph. If all layers are "collapsed" into one another, the HNSW graph essentially becomes an NSW graph.
+One of the problems with an NSW graph is that it is flat -- certain nodes can create dense "traffic hubs", reducing the efficiency of the traversal and causing the search complexity of the method to be poly-logarithmic[^9]. HNSW addresses this issue via a *hierarchical* graph structure and also fixes the upper bound of each node's number of neighbours, reducing the search complexity to logarithmic[^9]. The basic idea is to separate nearest neighbours into layers in the graph based on their distance scale. The long edges in the graph are kept in the top layers (which is the sparsest layer), with each layer below containing edges that are shorter-distance than the layers above it. The lowest layer forms the complete graph, and the search is performed from top to bottom. If all layers are "collapsed" into one another, the HNSW graph is essentially an NSW graph.
 
 {{< figure src="vector-db-hnsw.png" >}}
 
 The image above shows how, given an arbitrary entry point at the top layer, it's possible to rapidly traverse across the graph, dropping one layer at a time, until the nearest neighbour to the query vector is found.
 
-The biggest strength of HNSW over IVF is that it is able to find approximate nearest neighbours in complex, high-dimensional data with a high degree of recall. In fact, at the time of its release ~2019, it produced state-of-the-art results on benchmark datasets specifically with regard to improving recall while also being fast, explaining its immense popularity. However, it is not as memory efficient, unless it is combined with methods like PQ to compress the vectors at search time. Databases like Qdrant and Weaviate, typically implement composite indexes that involve quantization, like HNSW-PQ[^10] for these reasons.
+The biggest strength of HNSW over IVF is that it is able to find approximate nearest neighbours in complex, high-dimensional vector space with a high degree of recall. In fact, at the time of its release ~2019, it produced state-of-the-art results on benchmark datasets specifically with regard to improving recall while also being fast, explaining its immense popularity. However, it is not as memory efficient, unless it is combined with methods like PQ to compress the vectors at search time. Databases like Qdrant and Weaviate, typically implement composite indexes that involve quantization, like HNSW-PQ[^10] for these reasons, while also offering tuning knobs to adjust the trade-off between recall and query latency.
 
 ## Vamana
 
----
+Vamana is among the most recently developed graph-based indexing algorithms, first presented at NeurIPS 2019 by [Subramanya et al.](https://proceedings.neurips.cc/paper_files/paper/2019/file/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Paper.pdf) in collaboration with Microsoft Research India.
 
-# Takeaways: What makes a vector database?
+The standout features of Vamana are:
+
+* It was designed from the ground up to work in-memory (which most indexes are designed to do) as well as *on disk*, whose implementation as presented by Microsoft, is termed [DiskANN](https://github.com/microsoft/DiskANN).
+  * Disk-based indexes have proven to be a huge challenge for indexing algorithms in the past, so this is a key feature of Vamana that differentiates it from other algorithms
+* It allows the indexing of datasets that are too large to fit in memory by constructing smaller indexes for overlapping partitions, that can be easily merged into one single index whose query performance is on par with single indexes constructed for the entire dataset
+* It can also be combined with off-the-shelf vector compression schemes like PQ, to build a Vamana-PQ index that powers a DiskANN system -- the graph index with the full-precision vectors of the dataset are stored on disk, whereas the compressed vectors are cached in memory, achieving the best of both worlds
+
+Vamana constructs a directed graph iteratively, first starting off with a random graph, where each node represents a data point in vector space. At the beginning, the graph is well-connected, meaning nearly all nodes are connected to one another. The graph is then optimized using an objective that aims to connect nodes that are closest to one another. This is done by modifying the graph to remove most of the random short-range edges, while adding certain long-range edges that connect nodes that are quite distance from one another (to speed up traversals in the graph).
+
+{{< figure src="vector-db-vamana-build.png" >}}
+
+During query time, the entry point is chosen to be the global centroid. The search rapidly progresses in the right direction via the long-range edges, which allow the algorithm to jump to the ends of the graph and narrow down on the nearest vector to the query vector relatively quickly. In the example below, it takes just three hops to traverse from the entry point at the global centroid, to the end of the graph, and then to the nearest neighbour of the query vector.
+
+{{< figure src="vector-db-vamana-query.png" >}}
+
+As you might have observed already, Vamana has more of an "inside-out" approach to search, as opposed to the "outside-in" approach of HNSW, where the search starts from a random (potentially far out) node in the top layer and progresses inwards.
+
+There are not many databases that currently (as of 2023) implement the Vamana index, presumably due to the technical challenges with on-disk implementations and their implications on latency and search speed. Milvus[^11], for now, is the only vendor that has a working, on-disk Vamana index, whereas Weaviate[^12] and LanceDB[^13] currently only have experimental implementations. However, this is a rapidly evolving space, so it's highly recommended that you follow up the key vector DB vendors to stay up to date on the latest developments!
+
+# Available indexes in popular vector databases
+
+As shown in [part 1](../vector-db-1/) of this series, most databases implement the HNSW index as the default option.
+
+{{< figure src="../vector-db-1/vector-db-indexes.png" >}}
+
+Databases like Milvus, Weaviate, Qdrant and LanceDB offer simple tuning knobs to control the compression/quantization levels in their Product Quantization components. It's important to understand the fundamentals of how these indexes work, so that you can make the right choice of database and indexing parameters for your use case.
+
+# Conclusions
+
+The makers of purpose-built vector databases have spent thousands of man hours fine-tuning and optimizing their indexes and storage layers, so if you have large datasets and require < 100 ms latency on vector search queries, resorting to popular open-source databases like Weaviate, Qdrant and Milvus seems like a no-brainer, both from a developer's and a business's perspective.
+
+* A `Flat` index is one that stores vectors in their unmodified form, and is used for exact kNN search. It is the most accurate, but also the slowest.
+* `IVF-Flat` indexes use inverted file indexes to rapidly narrow down on the search space, which are much faster than brute force search, but they sacrifice some accuracy in the form of recall
+* `IVF-PQ` uses IVF in combination with Product Quantization to compress the vectors, reducing the memory footprint and speeding up search, while being better in recall than a pure `PQ` index
+* `HNSW` is by far the most popular index, and is often combined with Product Quantization, in the form of `HNSQ-PQ`, to improve search speed and memory efficiency compared to `IVF-PQ`
+* `Vamana` is a relatively new index, designed and optimized for on-disk performance -- it offers the promise of storing larger-than-memory vector data while performing as well, and as fast, as `HNSW`
+  * However, it's still early days and not many databases have made the leap towards implementing it due to the challenges of on-disk performance
+
+In my view, however, [LanceDB](https://lancedb.github.io/lancedb/) is among the most exciting databases to watch out for in the coming months. This is because it is the **only** vector database in the market where *all vector indexes are disk-based*. This is because they are innovating on multiple fronts all at once:
+
+1. Building a new, efficient columnar data format, [Lance](https://github.com/lancedb/lance), that is aimed at becoming a modern successor to parquet, while also being optimized for vector search
+   * It's because of this highly efficient storage layer that LanceDB is able to proceed with such confidence on the disk-based indexing front, unlike other vendors
+2. Embedded (serverless), purpose-built architecture built from the ground up
+3. Zero-copy data access, which is a huge performance boost for disk-based indexes
+4. Automatic versioning of data without needing additional infrastructure
+5. Direct integrations with cloud storage providers like AWS S3 and Azure Blob Storage, making it very easy to integrate with existing data pipelines
+
+Regardless of which database you choose for your use case, we can all agree that this is a great time to be alive and experimenting with these tools. I know there was a lot of information in this article, but the references below really helped me understand the internals of vector databases and how they are built from the ground up. I hope you found this post interesting, and let's keep learning! 🚀
 
 
 [^1]: Not All Vector Databases Are Made Equal, [Dmitry Kan on Medium](https://towardsdatascience.com/milvus-pinecone-vespa-weaviate-vald-gsi-what-unites-these-buzz-words-and-what-makes-each-9c65a3bd0696)
@@ -129,3 +172,6 @@ The biggest strength of HNSW over IVF is that it is able to find approximate nea
 [^8]: ANN indexes, [LanceDB docs](https://lancedb.github.io/lancedb/ann_indexes/))
 [^9]: Hierarchical Navigable Small-World graphs paper, [Malkov & Yashunin](https://arxiv.org/abs/1603.09320)
 [^10]: HNSW + PQ, [Weaviate blog](https://weaviate.io/blog/ann-algorithms-hnsw-pq)
+[^11]: On-disk index, [Milvus docs](https://milvus.io/docs/disk_index.md#On-disk-Index)
+[^12]: Vamana vs. HNSW, [Weaviate blog](https://weaviate.io/blog/ann-algorithms-vamana-vs-hnsw)
+[^13]: Types of index, [LanceDB docs](https://lancedb.github.io/lancedb/ann_indexes/#types-of-index)
