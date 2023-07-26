@@ -52,18 +52,18 @@ The solution to improve search efficiency, at the cost of some accuracy in the r
 
 {{< figure src="vector-db-indexing-compression.png" >}}
 
-### Flat composite indexes
+### Flat indexes
 
 When using ANN (non-exhaustive) search, an existing index like IVF or HNSW is termed "flat" when it directly calculates the distance between the query vector and the database vectors in their raw form. To differentiate this from the quantized variants. When used this way, they are called IVF-Flat, HNSW-Flat, and so on.
 
-### Quantized composite indexes
+### Quantized indexes
 
 A quantized index is one that combines an existing index (IVF, HNSW, Vamana) with compression methods like quantization to reduce the memory footprint and to speed up search. The quantization is typically one of two types[^4]: Scalar Quantization (SQ), or Product Quantization (PQ). SQ converts the floating-point numbers in a vector to integers (which are much smaller in size in bytes) by symmetrically dividing the vector into bins that account for the minimum and maximum value in each dimension.
 
 PQ is a more sophisticated method that considers the distribution of values along each vector dimension, performing *both* compression and data reduction[^4]: The idea behind PQ is to decompose a larger dimensional vector space into a cartesian product of smaller dimensional subspaces by quantizing each subspace into its own clusters -- vectors are represented by short codes, such that the distances between them can be efficiently estimated from their codes, termed *reproduction values*. An asymmetric binning procedure is used (unlike SQ), which increases precision[^5], as it incorporates the distribution of vectors within each subspace as part of the approximate distance estimation. However, there is a trade-off as it does reduce recall quite significantly[^6].
 
 ---
-# Popular and upcoming indexes
+# Popular indexes
 
 Among all the indexing methods listed so far, most purpose-built vector databases implement only a select few of them. This is a very rapidly evolving space 🔥, so a lot of information here may be out of date when you're reading this. It's highly recommended you check out the latest documentation of the databases you're interested in, to see what indexes they support. In this section, I'll focus on a few popular and upcoming indexes that multiple vendors are focusing on.
 
@@ -115,10 +115,10 @@ Vamana is among the most recently developed graph-based indexing algorithms, fir
 
 The standout features of Vamana are:
 
-* It was designed from the ground up to work in-memory (which most indexes are designed to do) as well as *on disk*, whose implementation as presented by Microsoft, is termed [DiskANN](https://github.com/microsoft/DiskANN).
-  * Disk-based indexes have proven to be a huge challenge for indexing algorithms in the past, so this is a key feature of Vamana that differentiates it from other algorithms
+* It was designed from the ground up to work both in-memory (which most indexes are designed to do) as well as *on-disk*, whose implementation as presented by Microsoft, is termed [DiskANN](https://github.com/microsoft/DiskANN).
+  * On-disk indexes seem to be proving a huge implementation challenge for vector database vendors, so this is a key feature of Vamana that differentiates it from other algorithms
 * It allows the indexing of datasets that are too large to fit in memory by constructing smaller indexes for overlapping partitions, that can be easily merged into one single index whose query performance is on par with single indexes constructed for the entire dataset
-* It can also be combined with off-the-shelf vector compression schemes like PQ, to build a Vamana-PQ index that powers a DiskANN system -- the graph index with the full-precision vectors of the dataset are stored on disk, whereas the compressed vectors are cached in memory, achieving the best of both worlds
+* It can also be combined with off-the-shelf vector compression methods like PQ, to build a Vamana-PQ index that powers a DiskANN system -- the graph index with the full-precision vectors of the dataset are stored on disk, whereas the compressed vectors are cached in memory, achieving the best of both worlds
 
 Vamana iteratively constructs a directed graph, first starting off with a random graph, where each node represents a data point in vector space. At the beginning, the graph is well-connected, meaning nearly all nodes are connected to one another. The graph is then optimized using an objective function that aims to maximize the connectivity between nodes that are closest to one another. This is done by pruning most of the random short-range edges, while also adding certain long-range edges that connect nodes that are quite distant from one another (to speed up traversals in the graph).
 
@@ -130,7 +130,7 @@ During query time, the entry point is chosen to be the global centroid. The sear
 
 As you might have observed already, Vamana offers more of an "inside-out" approach to search, as opposed to the "outside-in" approach of HNSW, where the search starts from a random (potentially far out) node in the top layer and progresses inwards.
 
-There are not many databases that currently (as of 2023) implement the Vamana index, presumably due to the technical challenges with on-disk implementations and their implications on latency and search speed. Milvus[^11], for now, is the only vendor that has a working, on-disk Vamana index, whereas Weaviate[^12] and LanceDB[^13] currently only have experimental implementations. However, this is a rapidly evolving space, so it's highly recommended that you follow up the key vector DB vendors to stay up to date on the latest developments!
+There are not many databases that currently (as of 2023) implement the Vamana index, presumably due to the technical challenges with on-disk implementations and their implications on latency and search speed. Milvus[^11], for now, is the only vendor that has a working, on-disk Vamana index, whereas Weaviate[^12] and LanceDB[^13] currently only have experimental implementations. However, this is a rapidly evolving space, so it's highly recommended that you follow up on the key vector DB vendors to stay up to date on the latest developments!
 
 # Available indexes in popular vector databases
 
