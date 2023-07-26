@@ -18,7 +18,7 @@ paginate = 20
 [params]
   author = "Prashanth Rao"
   description = "Data engineering, databases, software, programming languages and API development"
-  info = ["`The Data Quarry`", "Databases, APIs and everything in between"]
+  info = ["`The Data Quarry`", "Databases, APIs, programming languages, and everything in between"]
   keywords = "blog,data-engineering,python"
   avatarurl = "images/lake-7884049_640.jpg"
 
