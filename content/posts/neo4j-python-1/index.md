@@ -2,7 +2,7 @@
 title: "Neo4j for Pythonistas: Part 1"
 description: "Use Pydantic and async Python to build a graph in batch mode in Neo4j"
 date: 2023-05-22
-tags: ["python", "neo4j", "async", "pydantic", "graph-db", "data-engineering"]
+tags: ["neo4j", "async", "pydantic"]
 categories: ["databases", "etl"]
 ---
 
