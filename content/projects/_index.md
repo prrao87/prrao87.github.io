@@ -7,9 +7,9 @@ My projects in NLP, data science and backend development can be found on [GitHub
 
 My favourite ones are listed below.
 
-## async-db-fastapi
+## db-hub-fastapi
 
-[async-db-fastapi](https://github.com/prrao87/async-db-fastapi) is a repo to experiment with building a FastAPI layer on top of modern NoSQL databases. I experiment with conventional keyword-based text stores (Elasticsearch, Meilisearch), graph-based stores (Neo4j) and vector-based stores (Qdrant, Weaviate and LanceDB). The hope is to extend this work in the future with custom GraphQL APIs that allow one to expose existing data in new ways to end users, both within your organization and the outside world.
+[db-hub-fastapi](https://github.com/prrao87/db-hub-fastapi) is a repo to experiment with building a FastAPI layer on top of modern NoSQL databases. I experiment with conventional keyword-based text stores (Elasticsearch, Meilisearch), graph-based stores (Neo4j) and vector-based stores (Qdrant, Weaviate and LanceDB). The hope is to extend this work in the future with more varieties of databases as well as APIs that expose existing data in new ways to the end user (for e.g., via GraphQL).
 
 ## Gender Gap Tracker
 
