@@ -93,7 +93,9 @@ A much more exhaustive guide to optimizing Meilisearch settings to speed up inde
 
 ## Meilisearch task queue
 
-Just like we are aiming to do the data loading asynchronously, Meilisearch itself does things asynchronously, under the hood.
+Just like the data is loaded asynchronously, Meilisearch itself does things asynchronously, under the hood[^8]. The data that's loaded into Meilisearch is not immediately available, because it's being indexed in the background. In creating the index, Meilisearch creates roughly 20 data structures, with each batch processed concurrently in the order they came in.
+
+One caveat here is that as more and more data gets ingested, for really huge datasets (hundreds of millions of records), the indexing takes progressively longer, especially if long-form text fields are indexed. In any case, searching through these large dumps of data isn't the primary use case for Meilisearch, as described in their blog[^4]. Before indexing any data in Meilisearch, it's always a good idea to understand what indexing involves, and to read the docs to optimize the indexing process. 😅
 
 
 # Case 1: Sync
@@ -162,7 +164,7 @@ Finished updating database index settings
 Bulk index took 164.3521 seconds
 ```
 
-# Case 1: Async
+# Case 2: Async
 
 The async version uses the `meilisearch-python-async` client[^1], whose API is remarkably similar to the sync client's.
 
@@ -308,5 +310,6 @@ Many thanks to [Paul Sanders](https://github.com/sanders41), author of the Meili
 [^5]: Bookshop.org increases search-based purchases by 43% with Meilisearch, [Maya Shin](https://blog.meilisearch.com/bookshop-increases-search-based-purchases/)
 [^6]: Combining Python multi-processor with async, [GitHub PR #15](https://github.com/prrao87/db-hub-fastapi/pull/15)
 [^7]: Understanding the memory implications of batch loading with async, [GitHub PR #41](https://github.com/prrao87/db-hub-fastapi/pull/41)
+[^8]: Tasks and async operations, [Meilisearch docs](https://www.meilisearch.com/docs/learn/async/asynchronous_operations)
 
 
