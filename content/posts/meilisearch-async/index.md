@@ -16,7 +16,7 @@ If you've ever visited the [Hugging Face model hub](https://huggingface.co/model
 
 In this article, I'll do a case study comparing an async ETL data loading workflow vs. the commonly used sync workflow you may have come across. I'll also highlight how a modern, lightweight database built in Rust can be used in conjunction with a well-designed async Python client[^1] to *very* rapidly load data and index it under the hood. Asynchronous methods are a great option for many use cases, and can vastly outperform the synchronous clients when loading large amounts of data.
 
-## Sync, multi-threaded and async
+### Sync, multi-threaded and async
 
 Before going into the code, let's review the difference between sync, async and multi-threaded programs.
 
@@ -36,7 +36,7 @@ It is for this reason that most folks handling the lower-level async utilities i
 The case study in this post shows ETL code that is either sync or async, but not multi-threaded. The async version uses the `meilisearch-python-async` [client](https://github.com/sanders41/meilisearch-python-async), maintained by Paul Sanders.
 {{</notice>}}
 
-## The data
+### The data
 
 The dataset being loaded in this case study consists of 130k wine reviews from the Wine Enthusiast magazine, including the variety, location, winery, price, description, and some other metadata for each wine. Refer to the [Kaggle source](https://www.kaggle.com/datasets/zynicide/wine-reviews) for more detailed information on the data and how it was scraped.
 
@@ -63,7 +63,7 @@ An example JSON record is shown below.
 
 To test the performance of sync vs. async data loading in Meilisearch, we will run a benchmark where the same set of 130k records is loaded in a loop, either 1, 10 or 100 times. This will allow us to see how the performance of the sync and async versions scales with the size of the data.
 
-## ETL steps
+### ETL steps
 
 The ETL workflow described in this post consists of the following steps:
 
@@ -74,7 +74,7 @@ The ETL workflow described in this post consists of the following steps:
   * Use either the sync or async Python client for Meilisearch, whose results will be compared
 * Verify that the index works as intended by testing search-as-you-type queries
 
-## Meilisearch settings
+### Meilisearch settings
 
 A key step prior to loading the data into Meilisearch is to define the index settings. This is critical to ensure that the search performance is as expected, and that the index building time is reasonable regardless of the size of the data. The settings configuration is stored as a JSON file, and is read in as a Python dictionary. Some of the important attributes to set are:
 
@@ -91,14 +91,14 @@ A key step prior to loading the data into Meilisearch is to define the index set
 
 A much more exhaustive guide to optimizing Meilisearch settings to speed up indexing while also ensuring a relevant search is described in their blog[^3]. If you're looking to index large documents with long-form text, it's highly recommended to read through this guide in detail.
 
-## Meilisearch task queue
+### Meilisearch task queue
 
 Just like the data is loaded asynchronously, Meilisearch itself does things asynchronously, under the hood[^8]. The data that's loaded into Meilisearch is not immediately available, because it's being indexed in the background. In creating the index, Meilisearch creates roughly 20 data structures, with each batch processed concurrently in the order they came in.
 
 One caveat here is that as more and more data gets ingested, for really huge datasets (hundreds of millions of records), the indexing takes progressively longer, especially if long-form text fields are indexed. In any case, searching through these large dumps of data isn't the primary use case for Meilisearch, as described in their blog[^4]. Before indexing any data in Meilisearch, it's always a good idea to understand what indexing involves, and to read the docs to optimize the indexing process. 😅
 
 
-# Case 1: Sync
+## Case 1: Sync
 
 The synchronous ETL case involves using the official Meilisearch Python client, in conjunction with Pydantic, to ensure that the data is of the right type and quality prior to loading into Meilisearch. I won't go into the details of the Pydantic schema here, as that has been covered in detail in my [earlier post on loading data into Neo4j](../neo4j-python-1/). In a nutshell, the JSON data is read in, and validated against a Pydantic schema. The validated data is then sent to Meilisearch for indexing.
 
@@ -164,7 +164,7 @@ Finished updating database index settings
 Bulk index took 164.3521 seconds
 ```
 
-# Case 2: Async
+## Case 2: Async
 
 The async version uses the `meilisearch-python-async` client[^1], whose API is remarkably similar to the sync client's.
 
@@ -248,7 +248,7 @@ Bulk index took 101.4677 seconds
 It's clear that the async data loader is ~30% faster than the sync version for all cases!
 
 
-# Results & discussion
+## Results & discussion
 
 The results of the benchmarking are summarized in the table below. The async version is consistently faster than the sync version, with the difference in performance remaining more or less the same as the number of records being loaded increases. The async version is ~30% faster than the sync version for all cases.
 
@@ -265,17 +265,17 @@ It's worth noting that the data ingestion is only the first step in the ETL pipe
 
 {{</notice>}}
 
-# Search results on the front end
+### Search results on the front end
 
 Meilisearch allows developers to test the load by querying the database via a simple front end. A demo of the search is shown below, which returns the most relevant results for the query `2010 cabernet sauvignon`. Note how the search is able to handle typos, which is one of the strengths of Meilisearch's indexing scheme. The results are returned almost as fast as terms are typed in, which is the best part!
 
 {{< figure src="meilisearch.gif" >}}
 
-# Conclusions
+## Conclusions
 
 In this post, we've seen how to use Meilisearch to build a fast, full-text search engine to search through a sample dataset of wine reviews. We've also seen how to use the Meilisearch Python client (both sync and async) to load data into the database. In general, the async loader will be a fair bit faster than the sync loader, but it's worth testing them both out and tuning the batch sizes to get the best performance with the available memory in your situation, on your specific data.
 
-## When is Meilisearch a great fit?
+### When is Meilisearch a great fit?
 
 Meilisearch is an excellent choice for building search-as-you-type interfaces on end user-facing websites when keyword search is the primary search mechanism. In fact, a real-world case study showed that switching to Meilisearch from ElasticSearch improved the search experience on **bookshop.org**, increasing overall conversion by 43%[^5]. It's a great choice for building highly responsive search interfaces on internal tools, dashboards and admin panels. Because it is built in Rust, it is not only very fast; it is also incredibly easy to set up and get the database up and running for experiments.
 
@@ -285,7 +285,7 @@ Lastly, faceted search - where you need to refine search results by broad catego
 
 {{< figure src="meilisearch-facets.png" caption="Image source: [Meilisearch blog](https://blog.meilisearch.com/postgres-full-text-search-limitations/)">}}
 
-## Limitations of Meilisearch
+### Limitations of Meilisearch
 
 Because Meilisearch was designed from the ground up to be a near-instant search data store, it does not have great support for aggregations or analytics, which are features we might be used to from other NoSQL databases like ElasticSearch and MongoDB. More info on this is provided in an excellent blog post[^4] by the Meilisearch creators themselves.
 
@@ -297,7 +297,7 @@ As stated[^4]:
 In summary, if your goal is to run analytics on your unstructured data, or more complex queries than string-based information retrieval, such as aggregation queries, then, maybe Meilisearch isn't the best choice -- stick to more established alternatives like MongoDB or ElasticSearch that were designed to store humongous amounts of data.
 
 
-# Code & acknowledgements
+## Code & acknowledgements
 
 As always, the code as well as the dataset used in this post is available on [GitHub](https://github.com/prrao87/db-hub-fastapi/tree/main/dbs/meilisearch/scripts).
 

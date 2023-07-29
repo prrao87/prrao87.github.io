@@ -8,13 +8,13 @@ categories = ["general", "databases"]
 math = true
 +++
 
-# A gold rush in the database landscape
+## A gold rush in the database landscape
 
 There's been a lot of marketing (and unfortunately, hype) related to vector databases in the first half of 2023, and if you're reading this, you're likely curious _why_ so many kinds exist and what makes them different from one another. On paper, vector databases all do the same thing (they enable a host of applications that require semantic search), so how does one begin to form an informed opinion on each of them? 🤔
 
 In this post, I'll highlight the differences between the various vector databases out there as visually as possible. I'll also highlight specific dimensions on which I'm performing the comparison, to offer a more holistic view.
 
-## So many options! 🤯
+### So many options! 🤯
 
 Over the last several months, I've been researching different vector databases and their internals, as well as interacting with them via their Python APIs, and I've come across the following common issues:
 

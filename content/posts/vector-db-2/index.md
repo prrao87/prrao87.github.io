@@ -8,21 +8,21 @@ categories = ["general", "databases"]
 math = true
 +++
 
-# A primer on embeddings, indexing and vector search
+## Background
 
 This is the second post in a series on vector databases. As mentioned in [part 1](../vector-db-1/) of this series, there's been a lot of marketing (and unfortunately, hype) related to vector databases in the first half of 2023, and if you're reading this, you're likely curious what vector databases are actually doing under the hood, and how search functionality is built on top of efficient vector storage.
 
-## Why is everybody talking about vector databases these days?
+### Why is everybody talking about vector databases these days?
 
 Before going deeper into what vector DBs are, what can explain this frenzy of activity and investment in this space?
 
-### The age of Large Language Models (LLMs)
+#### The age of Large Language Models (LLMs)
 
 In November 2022, an early demo of ChatGPT (which is OpenAI's interface to GPT 3.5 and above) was released, following which it quickly became the [fastest growing application in history](https://www.forbes.com/sites/cindygordon/2023/02/02/chatgpt-is-the-fastest-growing-ap-in-the-history-of-web-applications/), gaining a million users in just 5 days 🤯! Indeed, if you look at the ✨ history on GitHub for some of the major open-source vector database repos, it's clear that there were sharp spikes in the star counts for some of them _after_ the release of ChatGPT in November 2022 and the subsequent release of [ChatGPT plugins](https://openai.com/blog/chatgpt-plugins) in March 2023. These factors, and their associated posts in websites like Hacker News and popular media[^1], are a large part of why there's been such a lot of activity in this space.
 
 {{< figure src="vector-db-stars.png" caption="Made with ❤️ by [star-history.com](https://star-history.com/#qdrant/qdrant&weaviate/weaviate&milvus-io/milvus&chroma-core/chroma&Date)">}}
 
-### The problem with relying on LLMs
+#### The problem with relying on LLMs
 
 LLMs are _generative_, meaning that they produce meaningful, coherent text in a sequential manner based on a user prompt. However, when using LLMs to answer a human's questions, they often produce irrelevant or factually incorrect results.
 

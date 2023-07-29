@@ -9,7 +9,7 @@ images = ["vector-db-indexing-types.png"]
 math = true
 +++
 
-# Organizing vector indexes
+## Organizing vector indexes
 
 This is my third post in a series on vector databases. [Part 1](../vector-db-1/) compared the offerings of various DB vendors and how they are different at a high level, while [Part 2](../vector-db-2/) focused on the basics of what vector DBs are and what they do. You may have already come across the excellent post "*Not all vector databases are made equal*"[^1] by Dmitry Kan, which covered the differences between various vector DBs in the market back in 2021. The landscape has been continuously evolving since then, and because each DB is different from others in its internals, I thought it made sense to do a deeper dive into indexes, the backbone of vector search.
 
@@ -17,31 +17,31 @@ Assuming that it's amply clear to you [what a vector database *is*](../vector-db
 
 As in most situations, choosing a vector index involves a tradeoff between accuracy (precision/recall) and speed/throughput. Having scoured the literature, I find that vector indexing methods can be organized within two levels: by their data structures, and by their level of compression. These classifications are by no means exhaustive, and many sources disagree on the right way to organize the various indexes, so, this is my best attempt at making sense of it all. Here goes! 😅
 
-## Level 1: Data structures
+### Level 1: Data structures
 
 It helps to start by organizing indexes based on the data structures that are used to construct them. This is best explored visually.
 
 {{< figure src="vector-db-indexing-types.png" caption="Breaking down vector indexes by their underlying data structures">}}
 
-### Hash-based index
+#### Hash-based index
 
 Hash-based indexes like LSH (Locally Sensitive Hashing) transform higher dimensional data into lower-dimensional hash codes that aim to keep the original similarity as much as possible. During indexing, the dataset is hashed multiple times to ensure that similar points are more likely to collide (which is the opposite of conventional hashing techniques, where the goal is to minimize collisions). During querying, the query point is also hashed using the same hash functions as used during indexing, and because the similar points are assigned to the same hash bucket, retrieval is very fast. The main advantage of hash-based indexes is that they are very fast while scaling to huge amounts of data, but the downside is that they are not very accurate.
 
-### Tree-based index
+#### Tree-based index
 
 Tree-based index structures allow for rapid searches in high-dimensional spaces, via binary search trees. The tree is constructed in a way that similar data points are more likely to end up in the same subtree, making it much faster to discover approximate nearest neighbours. **Annoy** (Approximate Nearest Neighbours Oh Yeah) was such a method that uses a forest of binary search trees, developed at Spotify. The downside of tree-based indexes is that they perform reasonably well only for low-dimensional data, and are not very accurate for high-dimensional data because they cannot adequately capture the complexity of the data.
 
-### Graph-based index
+#### Graph-based index
 
 Graph-based indexes are based on the idea that data points in vector space form a graph, where the nodes represent the data values, and edges connecting the nodes represent the similarity between the data points. The graph is constructed in a way that similar data points are more likely to be connected by edges, and the ANN search algorithm is designed to traverse the graph in an efficient manner. The main advantage of graph-based indexes, is that they are able to find approximate nearest neighbours in high-dimensional data, while also being memory efficient, increasing performance. HNSW and Vamana, explained below, are examples of graph-based indexes.
 
 An extension of graph-based indexes to include concepts from tree-based indexes is NGT[^3] (Neighbourhood Graphs and Trees). Developed by Yahoo! Japan Corporation, it performs two constructions during indexing: one that transforms a dense kNN graph into a bidirectional graph, and another that incrementally constructs a navigable small world (NSW) graph. Where it differs from pure graph-based indexes is in its use of range search via a tree-like structure (Vantage-point, or 'VP' trees), a variant of greedy search during graph construction. Because both constructions result in nodes that have a high outward degree, to avoid combinatorial explosion, the seed vertex from which the search originates uses the range search to make the traversal more efficient. This makes NGT a hybrid graph and tree-based index.
 
-### Inverted file index
+#### Inverted file index
 
 Inverted file index (IVF) divides the vector space into a number of tessellated cells, called Voronoi diagrams -- these reduce the search space in the same way that clustering does. In order to find the nearest neighbours, the ANN algorithm must simply locate the centroid of the nearest Voronoi cell, and then search only within that cell. The benefit of IVF is that it helps design ANN algorithms that rapidly narrow down on the similarity region of interest, but the disadvantage in its raw form is that the quantization step involved in tessellating the vector space can be slow for very large amounts of data. As a result, IVF is commonly combined with quantization methods like product quantization (PQ) to improve performance, described below.
 
-## Level 2: Compression
+### Level 2: Compression
 
 The second level on which indexes can be organized is their compression level: a "flat" or brute force index is one that stores vectors in their unmodified form. When a query vector is received, it is exhaustively compared against each and every vector in the database, as shown in the simplified example below in 3-D space. In essence, using such an index would be like doing a kNN search, where the returned results are exact matches with the $k$ nearest neighbouring vectors. As you can imagine, the time required to return results would increase linearly with the size of the data, making it impractical when applied on a dataset with more than a few hundred thousand vectors.
 
@@ -52,22 +52,22 @@ The solution to improve search efficiency, at the cost of some accuracy in the r
 
 {{< figure src="vector-db-indexing-compression.png" >}}
 
-### Flat indexes
+#### Flat indexes
 
 When using ANN (non-exhaustive) search, an existing index like IVF or HNSW is termed "flat" when it directly calculates the distance between the query vector and the database vectors in their raw form. To differentiate this from the quantized variants. When used this way, they are called IVF-Flat, HNSW-Flat, and so on.
 
-### Quantized indexes
+#### Quantized indexes
 
 A quantized index is one that combines an existing index (IVF, HNSW, Vamana) with compression methods like quantization to reduce the memory footprint and to speed up search. The quantization is typically one of two types[^4]: Scalar Quantization (SQ), or Product Quantization (PQ). SQ converts the floating-point numbers in a vector to integers (which are much smaller in size in bytes) by symmetrically dividing the vector into bins that account for the minimum and maximum value in each dimension.
 
 PQ is a more sophisticated method that considers the distribution of values along each vector dimension, performing *both* compression and data reduction[^4]: The idea behind PQ is to decompose a larger dimensional vector space into a cartesian product of smaller dimensional subspaces by quantizing each subspace into its own clusters -- vectors are represented by short codes, such that the distances between them can be efficiently estimated from their codes, termed *reproduction values*. An asymmetric binning procedure is used (unlike SQ), which increases precision[^5], as it incorporates the distribution of vectors within each subspace as part of the approximate distance estimation. However, there is a trade-off as it does reduce recall quite significantly[^6].
 
 ---
-# Popular indexes
+## Popular indexes
 
 Among all the indexing methods listed so far, most purpose-built vector databases implement only a select few of them. This is a very rapidly evolving space 🔥, so a lot of information here may be out of date when you're reading this. It's highly recommended you check out the latest documentation of the databases you're interested in, to see what indexes they support. In this section, I'll focus on a few popular and upcoming indexes that multiple vendors are focusing on.
 
-## IVF-PQ
+### IVF-PQ
 
 IVF-PQ is a composite index available in databases like Milvus and LanceDB. The IVF part of the index is used to narrow down the search space, and the PQ part is used to speed up the distance calculation between the query vector and the database vectors, and to reduce the memory requirements by quantizing the vectors. The great part about combining the two is that the speed is massively improved due to the PQ component, and IVF component helps improve the recall (that is normally compromised) by the PQ component alone.
 
@@ -89,7 +89,7 @@ Similarly, the number of partitions in the IVF step must be chosen to balance th
 
 Indeed, the LanceDB IVF-PQ index docs[^8] describe exactly these kinds of trade-offs when creating an index, so it's worth going deeper into these concepts to understand how to apply them in a real world scenario.
 
-## HNSW
+### HNSW
 
 Hierarchical Navigable Small-World (HNSW) graphs is among the most popular algorithms for building vector indexes -- as of writing this post, nearly *every* database vendor out there uses it as the primary option. It's also among the most intuitive algorithms out there, and it's highly recommended that you give the [original paper](https://arxiv.org/abs/1603.09320) that introduced it, a read.
 
@@ -109,7 +109,7 @@ The image above shows how, given an arbitrary entry point at the top layer, it's
 
 The biggest strength of HNSW over IVF is that it is able to find approximate nearest neighbours in complex, high-dimensional vector space with a high degree of recall. In fact, at the time of its release ~2019, it produced state-of-the-art results on benchmark datasets specifically with regard to improving recall while also being fast, explaining its immense popularity. However, it is not as memory efficient, unless it is combined with methods like PQ to compress the vectors at search time. Databases like Qdrant and Weaviate, typically implement composite indexes that involve quantization, like HNSW-PQ[^10] for these reasons, while also offering tuning knobs to adjust the trade-off between recall and query latency.
 
-## Vamana
+### Vamana
 
 Vamana is among the most recently developed graph-based indexing algorithms, first presented at NeurIPS 2019 by [Subramanya et al.](https://proceedings.neurips.cc/paper_files/paper/2019/file/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Paper.pdf) in collaboration with Microsoft Research India.
 
@@ -132,7 +132,7 @@ As you might have observed already, Vamana offers more of an "inside-out" approa
 
 There are not many databases that currently (as of 2023) implement the Vamana index, presumably due to the technical challenges with on-disk implementations and their implications on latency and search speed. Milvus[^11], for now, is the only vendor that has a working, on-disk Vamana index, whereas Weaviate[^12] and LanceDB[^13] currently only have experimental implementations. However, this is a rapidly evolving space, so it's highly recommended that you follow up on the key vector DB vendors to stay up to date on the latest developments!
 
-# Available indexes in popular vector databases
+## Available indexes in popular vector databases
 
 As shown in [part 1](../vector-db-1/) of this series, most databases implement the HNSW index as the default option.
 
@@ -140,7 +140,7 @@ As shown in [part 1](../vector-db-1/) of this series, most databases implement t
 
 Databases like Milvus, Weaviate, Qdrant and LanceDB offer simple tuning knobs to control the compression/quantization levels in their Product Quantization components. It's important to understand the fundamentals of how these indexes work, so that you can make the right choice of database and indexing parameters for your use case.
 
-# Conclusions
+## Conclusions
 
 The makers of purpose-built vector databases have spent thousands of man hours fine-tuning and optimizing their indexes and storage layers, so if you have large datasets and require < 100 ms latency on vector search queries, resorting to full-fledged, scalable open-source databases like Weaviate, Qdrant and Milvus seems like a no-brainer, both from a developer's and a business's perspective.
 
