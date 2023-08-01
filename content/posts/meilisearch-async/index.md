@@ -118,11 +118,23 @@ def get_meili_settings(filename: str) -> dict[str, Any]:
     return settings
 
 
-def main() -> None:
+def update_documents(filepath: Path, index: Index, primary_key: str, batch_size: int):
+    data = list(get_json_data(filepath))
+    if LIMIT > 0:
+        data = data[:LIMIT]
+    validated_data = validate(data)
+    index.update_documents_in_batches(
+        validated_data,
+        batch_size=batch_size,
+        primary_key=primary_key,
+    )
+
+
+def main(data_files: list[Path]) -> None:
     meili_settings = get_meili_settings(filename="settings/settings.json")
     config = Settings()
-    URI = f"http://localhost:7700"
-    MASTER_KEY = "secure-alphanumeric-string-for-master-key"
+    URI = f"http://{config.meili_url}:{config.meili_port}"
+    MASTER_KEY = config.meili_master_key
     index_name = "wines"
     primary_key = "id"
 
@@ -133,19 +145,17 @@ def main() -> None:
         # Update settings
         client.index(index_name).update_settings(meili_settings)
         print("Finished updating database index settings")
-        # Process data
-        validated_data = validate(data)
         try:
-            for i in tqdm(range(BENCHMARK_NUM)):
+            # In a real case we'd be iterating through a list of files
+            # For this example, it's just looping through the same file N times
+            for filepath in tqdm(data_files):
                 # Update index
-                index.update_documents_in_batches(
-                    validated_data, batch_size=CHUNKSIZE, primary_key=primary_key
-                )
+                update_documents(filepath, index, primary_key=primary_key, batch_size=10000)
         except Exception as e:
             print(f"{e}: Error while indexing to db")
 ```
 
-The `update_documents_in_batches` method is used to avoid batching the data in Python -- passing the entire list of records to Meilisearch and letting it handle the batching is much more efficient, as all the underlying operations are done in Rust. The `CHUNKSIZE` parameter for the sync case set to 10k. Running the bulk indexing script on ~130k, 1.3M and 13M records respectively, produce the following timing numbers.
+The `index.update_documents_in_batches()` method available in the Meilisearch client is used, so that we don't have to batch the data in Python -- passing the entire list of records to Meilisearch and letting it handle the batching is much more efficient, as all the underlying operations are done in Rust. The `batch_size` parameter for this method is set to 10k. Running the bulk indexing script on ~130k, 1.3M and 13M records respectively, produce the following timing numbers.
 
 ```sh
 $ python bulk_index_sync.py -b 1
@@ -185,11 +195,21 @@ def get_meili_settings(filename: str) -> MeilisearchSettings:
     return settings
 
 
-async def main() -> None:
+async def update_documents(filepath: Path, index: Index, primary_key: str, batch_size: int):
+    data = list(get_json_data(filepath))
+    validated_data = validate(data)
+    await index.update_documents_in_batches(
+        validated_data,
+        batch_size=batch_size,
+        primary_key=primary_key,
+    )
+
+
+async def main(data_files: list[Path]) -> None:
     meili_settings = get_meili_settings(filename="settings/settings.json")
     config = Settings()
-    URI = f"http://localhost:7700"
-    MASTER_KEY = "secure-alphanumeric-string-for-master-key"
+    URI = f"http://{config.meili_url}:{config.meili_port}"
+    MASTER_KEY = config.meili_master_key
     index_name = "wines"
     primary_key = "id"
     async with Client(URI, MASTER_KEY) as client:
@@ -199,23 +219,30 @@ async def main() -> None:
             # Update settings
             await client.index(index_name).update_settings(meili_settings)
             print("Finished updating database index settings")
-            # Process data
-            validated_data = validate(data)
-            try:
-                tasks = [
-                    # Update index
-                    index.update_documents_in_batches(
-                        validated_data, batch_size=CHUNKSIZE, primary_key=primary_key
-                    )
-                    for _ in range(BENCHMARK_NUM)
-                ]
-                await tqdm_asyncio.gather(*tasks)
-                print(f"Finished running benchmarks")
-            except Exception as e:
-                print(f"{e}: Error while indexing to db")
+            file_chunks = chunk_files(data_files, file_chunksize=5)
+            for chunk in tqdm(
+                file_chunks, desc="Handling file chunks", total=len(data_files) // 5
+            ):
+                try:
+                    tasks = [
+                        # Update index
+                        update_documents(
+                            filepath,
+                            index,
+                            primary_key=primary_key,
+                            batch_size=10000,
+                        )
+                        # In a real case we'd be iterating through a list of files
+                        # For this example, it's just looping through the same file N times
+                        for filepath in chunk
+                    ]
+                    await tqdm_asyncio.gather(*tasks)
+                except Exception as e:
+                    print(f"{e}: Error while indexing to db")
+        print(f"Finished running benchmarks")
 ```
 
-The key different in the code in the async version is how we gather tasks. Each batch of records that needs to be loaded is stored in a list, and is then awaited via `asyncio.gather(*tasks)`. To observe the progress, we use the `tqdm_asyncio.gather(*tasks)` method that wraps a progress bar on top of the running `asyncio` event loop. Running the bulk indexing script on ~130k, 1.3M and 13M records respectively, produce the following timing numbers.
+The key difference in the code in the async version is how we gather tasks. Each batch of records that needs to be loaded is stored in a list, and is then awaited via `asyncio.gather(*tasks)`. To observe the progress, we use the `tqdm_asyncio.gather(*tasks)` method that wraps a progress bar on top of the running `asyncio` event loop. Running the bulk indexing script on ~130k, 1.3M and 13M records respectively, produce the following timing numbers.
 
 ```sh
 $ python bulk_index_async.py -b 1
