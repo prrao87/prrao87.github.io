@@ -201,7 +201,12 @@ Vector databases are incredibly powerful, but the bottom line, per Harman[^3], a
 
 Just like in any other domain, clearly defining the business case and studying the tools at hand allows you to combine them effectively to solve real-world problems. In that regard, I hope this series on vector DBs was helpful so far!
 
-In the next post, I'll go deeper into the technical aspects of indexing algorithms as used by the various DB vendors, and where the technology is headed.
+**Other posts in this series**
+
+- [Vector databases (Part 1): What makes each one different?](../vector-db-1/)
+- [Vector databases (Part 3): Not all indexes are created equal](../vector-db-3/)
+- [Vector databases (Part 4): Analyzing the trade-offs](../vector-db-4/)
+
 
 [^1]: The rise of vector databases, [Forbes](https://www.forbes.com/sites/adrianbridgwater/2023/05/19/the-rise-of-vector-databases/?sh=7014b16514a6)
 [^2]: Revolution in NLP is changing the way companies understand text, [TechCrunch](https://techcrunch.com/sponsor/nvidia/how-the-revolution-of-natural-language-processing-is-changing-the-way-companies-understand-text/)

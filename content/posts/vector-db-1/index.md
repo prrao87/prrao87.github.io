@@ -171,6 +171,12 @@ I'll end this post with the observation that, historically in the database world
 
 I hope you found this summary useful! In the next posts, I'll summarize the underlying search and indexing algorithms in vector databases and go a bit deeper into the technical details. 🤓 🚀
 
+**Other posts in this series**
+
+- [Vector databases (Part 2): Understanding their internals](../vector-db-2/)
+- [Vector databases (Part 3): Not all indexes are created equal](../vector-db-3/)
+- [Vector databases (Part 4): Analyzing the trade-offs](../vector-db-4/)
+
 ---
 
 ## Edits

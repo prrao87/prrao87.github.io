@@ -162,6 +162,12 @@ In my view, however, [LanceDB](https://lancedb.github.io/lancedb/) is among the 
 
 Regardless of which database you choose for your use case, we can all agree that this is a great time to be alive and experimenting with these tools. I know there was a lot of information in this article, but the references below really helped me understand the internals of vector databases and how they are built from the ground up. I hope you found this post interesting, and let's keep learning! 🚀
 
+**Other posts in this series**
+
+- [Vector databases (Part 1): What makes each one different?](../vector-db-1/)
+- [Vector databases (Part 2): Understanding their internals](../vector-db-2/)
+- [Vector databases (Part 4): Analyzing the trade-offs](../vector-db-4/)
+
 
 [^1]: Not All Vector Databases Are Made Equal, [Dmitry Kan on Medium](https://towardsdatascience.com/milvus-pinecone-vespa-weaviate-vald-gsi-what-unites-these-buzz-words-and-what-makes-each-9c65a3bd0696)
 [^2]: Trillion-scale similarity, [Milvus blog](https://milvus.io/blog/Milvus-Was-Built-for-Massive-Scale-Think-Trillion-Vector-Similarity-Search.md)
