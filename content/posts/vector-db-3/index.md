@@ -147,7 +147,7 @@ The makers of purpose-built vector databases have spent thousands of man hours f
 * A `Flat` index is one that stores vectors in their unmodified form, and is used for exact kNN search. It is the most accurate, but also the slowest.
 * `IVF-Flat` indexes use inverted file indexes to rapidly narrow down on the search space, which are much faster than brute force search, but they sacrifice some accuracy in the form of recall
 * `IVF-PQ` uses IVF in combination with Product Quantization to compress the vectors, reducing the memory footprint and speeding up search, while being better in recall than a pure `PQ` index
-* `HNSW` is by far the most popular index, and is often combined with Product Quantization, in the form of `HNSQ-PQ`, to improve search speed and memory efficiency compared to `IVF-PQ`
+* `HNSW` is by far the most popular index, and is often combined with Product Quantization, in the form of `HNSW-PQ`, to improve search speed and memory efficiency compared to `IVF-PQ`
 * `Vamana` is a relatively new index, designed and optimized for on-disk performance -- it offers the promise of storing larger-than-memory vector data while performing as well, and as fast, as `HNSW`
   * However, it's still early days and not many databases have made the leap towards implementing it due to the challenges of on-disk performance
 
