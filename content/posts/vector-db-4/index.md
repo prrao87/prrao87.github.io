@@ -93,14 +93,14 @@ Questions to ask:
 
 ### 4. Recall vs. latency
 
-Related to the topic of latency, different database vendor make different trade-offs when it comes to optimizing for recall vs. latency. Recall is the percentage of relevant results returned by a query, and latency is the time taken to return the results.
+Recall is the percentage of relevant results returned by a query, and latency is the time taken to return the results. Different database vendor make different trade-offs when it comes to optimizing for recall vs. latency.
 
 As summarized in [part 3](../vector-db-3/) of this series:
 
 * A `Flat` index is one that stores vectors in their unmodified form, and is used for exact kNN search. It is the most accurate, but also the slowest.
 * `IVF-Flat` indexes use inverted file indexes to rapidly narrow down on the search space, which are much faster than brute force search, but they sacrifice some accuracy in the form of recall
 * `IVF-PQ` uses IVF in combination with Product Quantization to compress the vectors, reducing the memory footprint and speeding up search, while being better in recall than a pure `PQ` index
-* `HNSW` is by far the most popular index, and can be combined with Product Quantization, in the form of `HNSW-PQ`, to maintain a decent recall while improving memory efficiency compared to `IVF-PQ`
+* `HNSW` is by far the most popular index, and can be combined with Product Quantization, in the form of `HNSW-PQ`, to produce better recall while improving memory efficiency compared to `IVF-PQ`
 * `Vamana` is a relatively new index, designed and optimized for on-disk performance -- it offers the promise of storing larger-than-memory vector data while performing as well, and as fast, as `HNSW`
   * However, it's still early days and not many databases have made the leap towards implementing it due to the challenges of on-disk performance
 
@@ -121,7 +121,7 @@ Questions to ask:
 
 Databases like Redis are completely in-memory, and are blazing fast. However, it's very plausible that your use case requires storing enough vectors that are larger than memory. A combination of tricks is required to scale vector storage to very large data while also maintaining ANN search speed. Databases like Qdrant and Weaviate provide the option of using memory-mapped files for vectors that utilize the page cache's virtual address space on disk, avoiding loading the entire data into RAM. This helps maintain almost the speed of in-memory databases without actually persisting the data to the disk.
 
-From an index perspective, HNSW is known for the being the memory-hungry, and as vector datasets get larger and larger, the natural question that arises is, how well does it scale to out-of-memory indexes? Memory requirements can be reduced by combining PQ with HNSW, as described in the previous section. Vamana, a relatively newer index, which is part of the DiskANN algorithm, is among the most promising methods out there (currently available only in LanceDB[^6] and Milvus[^7]), and is claimed to perform on par with HNSW while scaling to out-of-memory indexes **purely on-disk**.
+From an indexing perspective, HNSW is known for being the most memory-hungry, and as vector datasets get larger and larger, the natural question that arises is, how well does it scale to out-of-memory indexes? Memory needs can be reduced by combining PQ with HNSW, as described in the previous section. Vamana, a relatively newer index, which is part of the DiskANN algorithm, is among the most promising methods out there (currently available only in LanceDB[^6] and Milvus[^7]), and is claimed to perform on par with HNSW while scaling to larger-than-memory indexes **purely on-disk**.
 
 {{< notice info >}}
 
@@ -159,7 +159,7 @@ A few techniques to handle this trade-off via re-ranking can be considered, and 
 
 * **Reciprocal Rank Fusion (RRF)**: This approach sums up the reciprocal ranks obtained from sparse and dense vectors to provide a fused ranking score. Databases like Elasticsearch and Weaviate[^10] offer hybrid search using one of many RRF methods.
 
-* **Cross-encoder reranking**: This is the most advanced method for hybrid score re-ranking. It fuses the sparse/dense ranking scores using a neural bi-encoder with a cross-encoding loss function, which typically produces the best results, at the expense of higher latency due to re-ranking via a more expensive approach. These solutions aren't typically offered directly in vector databases -- custom search engines need to be built downstream of the vector database to perform the re-ranking. Nils Reimers, creator of the `sentence-transformers` library, who is now at Cohere.ai, describes exactly such solutions in an episode of the Weaviate podcast linked below. 😄
+* **Cross-encoder reranking**: This is the most advanced method for hybrid score re-ranking. It fuses the sparse/dense ranking scores using a neural bi-encoder with a cross-encoding loss function, which typically produces the best results, at the expense of higher latency due to re-ranking via a more expensive approach. These solutions aren't typically offered directly in vector databases -- custom search engines need to be built downstream of the vector DB to perform the re-ranking. Nils Reimers, creator of the `sentence-transformers` library, who is now at Cohere.ai, describes exactly such solutions in an episode of the Weaviate podcast linked below. 😄
 
 {{< youtube KITxQzV97jw >}}
 
@@ -171,16 +171,16 @@ Questions to ask:
 
 ### 8. Filtering strategy
 
-In search, real-world queries are rarely just textual queries that ask for specific keywords. To provide the most relevant results, they typically involve filtering on other attributes. Consider the example of a clothing search (pants, jeans, etc.) of a particular size -- the way these filters are applied to the search result can have a huge impact on the quality of results.
+In search, real-world queries are rarely simple textual queries that ask for specific keywords. They typically involve filtering on other metadata attributes. Consider a retail example involving a clothing search (pants, jeans, etc.) of a particular size -- the way these filters are applied to the search result can have a huge impact on the quality of results.
 
 - **Pre-filtered search**: This approach involves naïvely applying the size filter before performing vector search. Although this sounds like a natural thing to attempt, this can lead to a collapse of the HSNW graph into disjoint connected components (as per percolation theory[^11], which defines a threshold at which this happens). As an example, if the user was looking for "jeans" of size 28 which are not in the search catalog, the right way to go would be to at least show related items (like "pants") of the similar size. But, because pre-filtering aggressively prunes all the terms out of the search that don’t meet the size criteria, the full graph isn't traversed and we miss out on relevant results.
 
 - **Post-filtered search**: This approach returns `top-k` nearest neighbours to the query vector ("jeans") and filters them down based on matching sizes after all "jeans" results are retrieved. However, this also has a problem -- we don’t always obtain the same number of results for every query, and if the filtered attribute, i.e., size 28, is a very small fraction of the entire dataset, we may obtain almost no results at all!
 
-- **Pre-filtered search**: Different databases apply pre-filtering differently — Weaviate, for example, stores inverted index shards alongside the HNSW index shards, and uses the inverted index to pre-filter much more effectively — the “allow list” obtained from the inverted index, which is a quite large list, is then much more effectively searched via the HNSW index, which considers semantics. Qdrant uses its own pre-filtering method that ensures a connected HNSW graph under a wide range of conditions by forming edges between categories at index time.
+- **Custom-filtered search**: Numerous databases apply methods that are in between pre/post-filtering — Weaviate, for example, stores inverted index shards alongside the HNSW index shards, and uses the inverted index to pre-filter much more effectively — the “allow list” obtained from the inverted index, which is a quite large list, is then much more effectively searched via the HNSW index, which considers semantics. Qdrant uses its own filtering method in between pre/post-filtering that ensures a connected HNSW graph under a wide range of conditions by forming edges between categories at index time.
 
 {{< notice note >}}
-There is no "one-size-fits-all" solution for filtering results in vector search. Multiple mitigation strategies exist, such as building an additional IVF index to use keywords to assist in the search, as in [Weaviate](https://weaviate.io/blog/hybrid-search-explained), or creating additional HNSW graph connections between *categories*, which helps consider all buckets in the search during filtering, as in [Qdrant](https://qdrant.tech/articles/filtrable-hnsw/). This area is continuously evolving, and search is an incredibly hard problem to solve, due to the numerous trade-offs.
+There is no "one-size-fits-all" solution for filtering results in vector search. Multiple mitigation strategies exist, such as building an additional IVF index to use keywords to assist in the search, as in [Weaviate](https://weaviate.io/blog/hybrid-search-explained), or creating additional HNSW graph connections between *categories*, which helps consider all buckets in the search during filtering, as in [Qdrant](https://qdrant.tech/articles/filtrable-hnsw/). This area is continuously evolving, and highly relevant search & retrieval is an incredibly hard problem to solve, due to these numerous trade-offs.
 {{< /notice >}}
 
 Questions to ask:
@@ -190,11 +190,11 @@ Questions to ask:
 
 ## Conclusions
 
-Whew! This has been a long road toward understanding the internals of vector databases. I've been thinking about this topic for most of 2023, and have been down many rabbit-holes, having a ton of interesting conversations with developers, CEOs and other folks experimenting with these tools and technologies. 🤓
+Whew! This has been a long road toward understanding the internals of vector databases. I've been thinking deeply about this topic for most of 2023, and have been down many rabbit-holes, having had a ton of interesting conversations with developers, CEOs and other folks experimenting with these tools and technologies. 🤓
 
-As vector DBs continue to evolve in this rapidly changing space, I think the key takeaways from this series, at least for me, is that there is no one-size-fits-all solution. The best way to choose a vector database is to first understand the requirements of your use case, and then test out the different solutions on your own data.
+As vector DBs continue to evolve in this rapidly changing space, I think the key takeaway from this series, at least for me, is that there is no one-size-fits-all solution. The best way to choose a vector database stack is to first understand the requirements and constraints of your use case, and then test out the different solutions on your own data.
 
-In my experience, purpose-built solutions are the better option, because they have a wider of suite of functions, are able to implement cutting-edge solutions due to starting from a clean-slate, and they also contain a host of optimizations that incumbent vendors just can't prioritize for. Looking ahead, I'm particularly focusing on two databases built in Rust 🦀, namely, Qdrant and LanceDB, which are my go-to solutions for any POCs and experiments. They're both innovating at a new level in very different ways, and most importantly, they both have a **developer-first** philosophy, with a rapidly growing community. Regardless of which vendor you fancy, I urge you to join me and many others in exploring these tools further! 🤓
+In my experience, purpose-built solutions are the superior option, because they have a wider of suite of functions, are able to implement cutting-edge solutions due to starting from a clean-slate, and they also contain a host of optimizations that incumbent vendors just can't prioritize for. Looking ahead, I'm particularly excited about two databases built in Rust 🦀, namely, Qdrant and LanceDB, which will be my go-to solutions for any POCs and experiments. They're both innovating at a new level in very different ways, and most importantly, they both have a **developer-first** philosophy, with a rapidly growing community. Regardless of which vendor you fancy, I urge you to join me and many others in exploring these tools further! 🤓
 
 If you like listening to podcasts, I speak about these topics at length in the [Practical AI Podcast](https://practicalai.fm/234). Happy learning, and keep coding! 🚀
 
