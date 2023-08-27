@@ -51,14 +51,14 @@ Despite a lot of vendors offering fully-managed, cloud-hosted solutions with sec
 
 #### Cost considerations
 
-Databases that offer cloud-native, managed solutions typically charge based on the amount of data stored and the number of queries made. This is a great model for organizations that have a lot of data, but don't want to pay for the infrastructure to transport and store it. However, for organizations that have a lot of data, but already have large in-house data infrastructure teams ready to support on-prem or embedded hosting, sending data to the cloud, both for indexing and for querying, makes almost no sense. 
+Databases that offer cloud-native, managed solutions typically charge based on the amount of data stored and the number of queries made. This is a great model for organizations that have a lot of data, but don't want to pay for the infrastructure to transport and store it. However, for organizations that have a lot of data, but already have established in-house data infrastructure teams ready to support on-prem or embedded hosting, sending data to the cloud, both for indexing and for querying, makes almost no sense. 
 
 While it's hard to define a "critical mass" of an organization's size at which point this distinction can be made, it's important to know that the standard client-server database architectures deployed on the cloud that we have been used to for many years, are **NOT** the only option in 2023.
 
 Questions to ask:
 
 - Is my dataset growing fast enough that I need to scale  it elastically, on demand, on the cloud?
-- Do I have a large enough data infrastructure team to support on-prem/embedded hosting?
+- Do I have an established enough data infrastructure team to support on-prem/embedded hosting?
 - Is my dataset sensitive enough that I need to keep it on-prem?
 - What might be the cost considerations of paying per query and per GB of data stored for a fully-managed cloud-hosted solution?
 
@@ -80,7 +80,7 @@ In many cases, the reality is that an existing solution that adds vector search 
 
 ### 3. Insertion speed vs. query speed
 
-Certain vendors like Milvus/Zilliz, have been around for long enough that they are looking at humongous-scale streaming use cases that require vectors. Inserting, and then indexing large numbers of vectors at a time may be essential in real-time scenarios like video surveillance or financial transaction tracking, and Milvus/Zilliz are capable of throwing the kitchen sink at this problem[^5].
+Certain vendors like Milvus/Zilliz, have been around for long enough that they are looking at humongous-scale streaming use cases that require vectors. Inserting, and then indexing thousands of vectors per minute may be essential in real-time scenarios like video surveillance or financial transaction tracking, and Milvus/Zilliz are capable of throwing the kitchen sink at this problem[^5].
 
 However, is insertion speed that important to the majority of use cases? For most organizations, querying speed is more important. This is because insertion and indexing are typically done infrequently, but the data might be queried much more frequently, typically in real-time at scale via user interfaces. Qdrant, an open-Source, purpose-built vector DB written in Rust 🦀, optimizes exactly for this use case. Because it's written in Rust, it performs admirably fast in indexing as well, but, as shown in the Qdrant demo on their own documentation page, semantic search-as-you-type, returning vector search solutions that produce relevant results in just a few milliseconds, is actually achievable in a live setting. 🤯
 
@@ -119,7 +119,7 @@ Questions to ask:
 
 ### 5. In-memory vs. on-disk index and vector storage
 
-Databases like Redis are completely in-memory, and are blazing fast. However, it's very plausible that your use case requires storing enough vectors that are larger than memory. A combination of tricks is required to scale vector storage to very large data while also maintaining ANN search speed. Databases like Qdrant and Weaviate provide the option of using memory-mapped files for vectors that utilize the page cache's virtual address space on disk, avoiding loading the entire data into RAM. This helps maintain almost the speed of in-memory databases without actually persisting the data to the disk.
+Databases like Redis are completely in-memory, and are blazing fast. However, it's very plausible that your use case requires storing enough vectors that are larger than memory. A combination of tricks is required to scale vector storage to very large data (hundreds of millions, or even billions of vectors) while also maintaining ANN search speed. Databases like Qdrant and Weaviate provide the option of using memory-mapped files for vectors that utilize the page cache's virtual address space on disk, avoiding loading the entire data into RAM. This helps maintain almost the speed of in-memory databases without actually persisting the data to the disk.
 
 From an indexing perspective, HNSW is known for being the most memory-hungry, and as vector datasets get larger and larger, the natural question that arises is, how well does it scale to out-of-memory indexes? Memory needs can be reduced by combining PQ with HNSW, as described in the previous section. Vamana, a relatively newer index, which is part of the DiskANN algorithm, is among the most promising methods out there (currently available only in LanceDB[^6] and Milvus[^7]), and is claimed to perform on par with HNSW while scaling to larger-than-memory indexes **purely on-disk**.
 
@@ -131,14 +131,14 @@ Of all the database vendors out there, [LanceDB](https://lancedb.github.io/lance
 
 Questions to ask:
 
-- If my dataset is really large, how can I reduce memory consumption? In these cases, reducing the dimensionality of the vectors being stored, tuning the maximum number of graph connections (if using HNSW), or adding product quantization (if your DB supports it) can help.
+- If my dataset is really large (>10M vectors), how can I reduce memory consumption? In these cases, reducing the dimensionality of the vectors being stored, tuning the maximum number of graph connections (if using HNSW), or adding product quantization (if your DB supports it) can help.
 - Does my database have an option to store vectors on disk, and if so, how does it affect query speed? As always, test on your own data and use case!
 
 ### 6. Sparse vs. dense vector storage
 
 The vector embeddings generated by `sentence-transformers` or similar models are dense, meaning that they are composed entirely of non-zero floats. However, it's possible to also use sparse vectors that compute the relative word frequencies per document, in which most of the vector values are zero. Sparse vectors are typically generated by algorithms like BM25 and SPLADE (Sparse Lexical AnD Expansion). Elasticsearch offers its own proprietary pre-trained sparse model for English, ELSER (Elasticsearch Learned Sparse Encoder), that has roughly 30,000 dimensions, but because it's sparse, it's far cheaper to compute and store than an equivalent-length dense vector.
 
-With the advent of `sentence-transformers` and many other transformer models, generating dense vectors from documents has never been easier (or more affordable). The main benefit of dense vectors are that they compress the semantics of language much better than sparse vectors do, due to the underlying embeddings that come from transformers — however, they are more expensive at indexing time, which is definitely a consideration when dealing with very large datasets.
+With the advent of `sentence-transformers` and many other transformer models, generating dense vectors from documents has never been easier (or more affordable). The main benefit of dense vectors are that they compress the semantics of language much better than sparse vectors do, due to the underlying embeddings that come from transformers — however, they are more expensive at indexing time, which is definitely a consideration when dealing with datasets of the order of 100M vectors.
 
 Questions to ask:
 
