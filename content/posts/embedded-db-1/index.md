@@ -1,77 +1,61 @@
 +++ 
-draft = true
-date = 2023-08-26
-title = "Embedded databases (1): The harmony of data model paradigms in the age of Arrow"
-description = "A look at why these embedded in the relational, graph and vector paradigms"
+draft = false
+date = 2023-08-27
+title = "Embedded databases (1): The harmony of DuckDB, KùzuDB and LanceDB"
+description = "A look at how embedded databases enable easy navigation between relational, graph and vector paradigms"
 tags = ["embedded-db", "vector-db", "graph-db"]
 categories = ["databases"]
 +++
 
 ## Embedded databases are here to stay
 
-In the world of database systems, the client/server model has been by far the most widespread successful. Databases whose names you're likely very familiar with, like PostgreSQL, MySQL, MongoDB and many others, fall in this camp, whose foundations were laid in the early days of the world wide web. The client/server model was a natural fit because it allowed for a separation of concerns between the client (the web browser) and the server (the web server). In most applications in use even today, we think about applications using this architecture, where the client is responsible for rendering the user interface, while the server is responsible for storing and serving the data.
+In the world of database systems, the client/server architecture has been by far the most widespread successful. Databases whose names you're likely very familiar with, like PostgreSQL, MySQL, MongoDB and many others, fall in this camp, whose foundations were laid in the early days of the world wide web. The client/server architecture was a natural fit because it allowed for a separation of concerns between the client (the web browser) and the server (the web server). In most applications in use even today, we think about applications using this architecture, where the client is responsible for rendering the user interface, while the server is responsible for storing and serving the data.
 
-It's not a stretch to say that the world has progressed a *long* way since the early days of the web. As computing power has grown exponentially, modern embedded databases are able to do a lot more, *with a lot less*. Although the idea of embedded databases is not new (SQLite has been around since 2000! 🤯), there have been numerous research breakthroughs in the last decade, making it possible for vendors to build fast, lightweight, and easy to use alternatives to established solutions like Postgres or MySQL, especially for the massive analytical and ML workloads we're seeing today.
+It's not a stretch to say that the world has progressed a *long* way since the early days of the web. As computing power has grown exponentially, modern embedded databases are able to do a lot more, *with a lot less*. Although the idea of embedded databases is not new -- SQLite has been around since 2000 🤯 -- there have been numerous research breakthroughs in the last decade, making it possible for vendors to build fast, lightweight, and easy to use alternatives to established solutions like Postgres or MySQL, especially for the massive analytical and ML workloads we're seeing today.
 
-### The rise of enterprise data warehouses
+Real-world data processing workloads can be broadly broken into two: **OLTP** (online transactional processing and) **OLAP** (online analytical processing). OLTP workloads involve a lot of small, fast transactions, like updating a user's profile, or adding a new item to a shopping cart. OLAP workloads, on the other hand, involve a lot of complex, long-running queries, like aggregating over a large dataset, or joining several large tables. Over the years, the client/server architecture has been a great fit for OLTP workloads, but has been less than ideal for OLAP workloads, mainly because their underlying storage is row-oriented. This has led to a host of OLAP data warehouses being built specifically to process heavy analytical workloads, such as Snowflake, Clickhouse and BigQuery, which are designed to use columnar storage.
 
-Real-world data workloads can be broadly broken into two: **OLTP** (online transactional processing and) **OLAP** (online analytical processing). OLTP workloads involve a lot of small, fast transactions, like updating a user's profile, or adding a new item to a shopping cart. OLAP workloads, on the other hand, involve a lot of complex, long-running queries, like aggregating over a large dataset, or joining several large tables. Over the years, the client/server model has been a great fit for OLTP workloads, but has been less than ideal for OLAP workloads, mainly because their underlying storage is row-oriented. This has led to a host of OLAP data warehouses being built specifically to process heavy analytical workloads, such as Snowflake, Clickhouse and BigQuery, which are designed to use columnar storage.
+However, a lot of these enterprise solutions are designed for "big" data (whatever that terms means for your organization). But there's a whole ocean of use cases *in between* single-CPU, in-memory analytics and large-scale, distributed analytics. It's in this middle ground where embedded databases shine ✨, because they're designed to be lightweight, easy to use, and are extremely performant for analytics, from small-scale (a few million) to large-scale (billion-size) datasets.
 
-However, a lot of these enterprise solutions are designed for "big" data (whatever that terms means for your organization). But there's a whole ocean of use cases *in between* single-CPU, in-memory analytics and large-scale, distributed analytics. It's in this middle ground where embedded databases shine ✨, because they're designed to be lightweight, easy to use, and are extremely performant, from small-scale to large-scale data analytics.
+## Some background
 
-### Focus of this post
+The aim of this upcoming series is to first gain a birds-eye view of the embedded database landscape, and how their interplay with Apache Arrow ecosystem is allowing for greater flexibility in data modelling than was possible before. From an OLAP perspective, three particular vendors are really exciting: **DuckDB** in the relational world, **KùzuDB** for graphs, and **LanceDB** for vectors. 
 
-The aim of this post, and the upcoming series, is to first gain a birds-eye view of the embedded database landscape, and how they tie into the Apache Arrow ecosystem. From an OLAP perspective, three particular vendors are really exciting: **DuckDB** in the relational world, **KùzuDB** for graphs, and **LanceDB** for vectors. I'm focusing specifically on these three solutions, because they're all open-source, and importantly, **they embrace unorthodoxy** at their core. In this, and the upcoming series of posts, I want to explore what specifically makes them so interesting, fast and performant. As always, code and timing numbers to reproduce the results will be provided! 🔥
+I'm focusing specifically on these three solutions, because they're all open-source, and importantly, **they embrace unorthodoxy** at their core -- they do away with existing designs, and instead innovate by starting from a clean slate.
 
-{{<figure src="embedded-db-breakdown.png">}}
+{{<figure src="embedded-db-breakdown.png" caption="The unifying interface for modern data: Arrow">}}
 
-The bottom half of the image above is particularly interesting: [Arrow](https://arrow.apache.org/), a language-agnostic development ecosystem for in-memory data, is the common denominator between all three of these databases. Arrow is a columnar, in-memory data format that's designed to be a fast, efficient, columnar memory format for flat and hierarchical data, organized for efficient analytic operations on modern CPUs and GPUs.
+The bottom part of the image is particularly interesting: [Arrow](https://arrow.apache.org/), a language-agnostic development ecosystem for in-memory data, is the common denominator between all three of these databases, allowing data from one paradigm to relatively easily be transformed into another (despite the databases themselves being implemented in different languages). The Arrow format was designed from the ground up to be a columnar, fast and in-memory format for flat and hierarchical data, to be efficient for analytic operations on modern CPUs and GPUs.
 
-In this and upcoming posts, I'll describe how these three databases, despite having radically different internals and data modelling paradigms, are able to play well together, and how they can be used to build a powerful, flexible, and fast analytical stack, that can be used for a wide variety of use cases, for nearly all sizes of data.
+### What are embedded databases?
 
-## What are embedded databases?
+Embedded databases are **in-process** database management systems that are tightly integrated with the application layer. The term "in-process" is important because the database computation runs within the same underlying process as the application (which could be written in any language, like Python, R, JavaScript, C++). In the case of RocksDB, an open-source embedded key-value database written in C++, the application it runs inside could *itself be another database*[^6]!
 
-Embedded databases are **in-process** database management systems that are tightly integrated with the application layer. The term "in-process" is important because the database computation runs within the same underlying process as the application (which could be written in any language, like Python, R, JavaScript, C++). In cases like RocksDB, a key-value embedded database, the application it runs inside could *itself be another database*[^5]!
-
-In the database community, embedded databases are often referred to as *serverless* databases, because they do not require a client/server architecture (as is prevalent in most large-scale software systems), and this is the definition of serverless I'll be using in this series. Another characteristic of embedded databases is that they are designed from the ground up to clearly separate storage from compute -- data that's larger than memory can be stored and queried on-disk, allowing them to scale to all sizes of data.
+A key characteristic of embedded databases is that they are designed from the ground up to clearly separate storage from compute -- data that's larger than memory can be stored and queried on-disk, allowing them to scale to all sizes of data (up to 100M+ data points).
 
 {{<notice info>}}
 
-💡 The term "serverless" can mean different things depending on the context (especially if you're coming from a cloud or microservices background), so I'll not be using the terms "embedded" and "serverless" interchangeably.
+💡 In the database community, embedded databases are often referred to as *serverless* databases, because they do not require a client/server architecture (as is prevalent in most large-scale software systems). If you're looking at this from a cloud or microservices perspective, the term "serverless" can mean something different altogether, so I'll not be using the terms "embedded" and "serverless" interchangeably in this series on database architectures.
 
 {{</notice>}}
 
 ### A breakdown of the landscape
 
-The three solutions I'll be focusing on are but part of a larger landscape of embedded DBs, which are out of the scope of this series. However, it makes sense to first gain a birds-eye view at the breakdown of the embedded landscape.
+The three databases we will focus on are but part of a larger landscape of embedded DBs, which are out of the scope of this series. However, it makes sense to first gain a birds-eye view at the breakdown of the embedded landscape.
 
 {{<figure src="embedded-db-landscape.png" caption="Embedded databases organized by data model paradigm">}}
 
-### Where are embedded databases useful?
-
-In the last few years, the term [edge computing](https://en.wikipedia.org/wiki/Edge_computing) is becoming more and more common. Thanks to advancements in wireless technology, systems engineering, and a massive increase in the number of people connected to the internet, we have around 15 billion IoT devices today, projected to grow to ~30 billion devices by 2030[^1]. As these edge devices become more powerful, they are increasingly capable of running complex software, including operating systems and databases. The key point is: workloads that were thought to be too expensive to run in-process, are becoming more and more possible, even for surprisingly large amounts of data. 
-
-The reason embedded database have a role to play in empowering ML/AI applications of the future, especially on the edge, is largely to do with the following:
-
-* **Privacy**: IoT and mobile devices collect data *on the edge*, i.e., on the device itself. These devices typically have low(ish) computational resources, with a lot of their compute being dedicated to performing application-specific tasks. The data on these devices is often sensitive and could contain private information about the user, so sending it via a network to a remote server to process it for analytics or ML may not be the most secure option. Embedded databases, by their very nature of being tightly integrated with the application, could allow for the data to be stored, queried and analyzed on the device itself.
-
-* Security: Client/server databases often include expensive, complex security features, such as authentication, authorization, encryption, and disaster recovery. Embedded databases, due to the fact that they're tightly connected to the application, can be designed to be lightweight and secure, with only the necessary security features required for the application, greatly reducing the attack surface.
-
-* Latency: Sending data over a network to a remote server for processing can be slow, especially if large amounts of data are being sent at regular intervals on a mobile network. Embedded databases allow for data to be stored and queried on the device itself, massively reducing the latency of the overall system.
-
-* Cost: A lot of the embedded databases available today (like the three mentioned in this post) are open-source and extremely lightweight, while also being extremely performant. For analytical workloads and rapid deployment of applications, embedded databases are a great option, because they don't require any external dependencies, increasing the speed with which teams can take applications to production while reducing the overall cost of the application. In addition, a lot of complex ETL workflows that may have been required to move data from the edge to a remote server (while maintaining synchronization between the two locations) can be avoided, further reducing the cost of the overall system.
-
-All this being said, embedded databases offer a TON of value even in the conventional sense, outside of edge computing, when you have huge amounts of data stored on the cloud. As mentioned before, databases like DuckDB, KùzuDB and LanceDB, allow you to do *more, with less*.
+Key-value embedded data stores are quite popular, due to their speed and lightweight nature, allowing them to power a host of other applications/databases downstream. However, the key-value data model is quite simplistic, allowing for limited expressivity in data modelling. The other three data model paradigms -- relational, graph and vector -- are much more powerful and expressive, and are thus the focus of this series.
 
 ---
 
 ## DuckDB
 
-DuckDB is a high-performance embedded relational database system (RDBMS) that can be queried via a rich SQL dialect that's very similar to Postgres. Its core is written in C++, and it's designed to be fast, ACID-compliant, and easy to use. It's designed to support large-scale OLAP query workloads, which are typically characterized by complex, relatively long-running queries that process significant portions of the stored data -- for example, aggregations over entire tables, or joins between several large tables.
+[DuckDB](https://duckdb.org/) is a high-performance embedded relational database system (RDBMS) that can be queried via a rich SQL dialect that's very similar to Postgres. Its core is written in C++, and it's designed to be fast, ACID-compliant, and easy to use. It's designed to support large-scale OLAP query workloads, which are typically characterized by complex, relatively long-running queries that process significant portions of the stored data -- for example, aggregations over entire tables, or joins between several large tables.
 
 ### An interesting take on the "big data" narrative
 
-In early 2023, the makers of DuckDB posted a blog with a click-baity title, "*Big data is dead*" [^2]. It was very smartly (and aptly) countered in another article that came shortly after, "*Big data is dead ... Long live big data!*"[^3]. Both articles are very well-written, and contain a lot of insights from folks who have spent years in the world of big data, so it's recommended you give them both a read.
+In early 2023, the makers of DuckDB posted a blog with a click-baity title, "*Big data is dead*" [^1]. It was very smartly (and aptly) countered in another article that came shortly after, "*Big data is dead ... Long live big data!*"[^2]. Both articles are very well-written, and contain a lot of insights from folks who have spent years in the world of big data, so it's recommended you give them both a read.
 
 * The thesis: [Big data is dead](https://motherduck.com/blog/big-data-is-dead/), by Jordan Tigani, a founding engineer at Google BigQuery, now founder and CEO of MotherDuck, DuckDB's commercial cloud offering.
 * The antithesis: [Big data is dead, long live big data!](https://ponder.io/big-data-is-dead-long-live-big-data/), by Aditya Parameswaran, Associate Professor at UC Berkeley, and co-founder of Ponder, a data science startup.
@@ -84,48 +68,87 @@ I'm very much on board with both camps! Everything has to be taken in context, f
 
 ### Key features of DuckDB
 
-All jokes aside, DuckDB is a *serious* database, with a host of unique and amazing features that are straight from the world of academic database research, making it stand out from the crowd. As they mention in their blog[^4], DuckDB stands on the shoulders of giants. A few of their key features for blazing fast OLAP query performance are listed below.
+All jokes aside, DuckDB is a *seriously* powerful database, with a host of unique and amazing features that are straight from the world of academic database research. As they mention in their blog[^3], DuckDB stands on the shoulders of giants. A few of their key features for blazing fast OLAP query performance on large datasets (involving aggregations and joins on 100M+ rows on multiple tables), are listed below.
 
 * Like other OLAP data warehouses, DuckDB uses columnar storage, which is a great fit for analytical workloads, because it allows for fast, efficient scans over large amounts of data
 * Uses vectorized query execution, which is a technique that allows for processing large amounts of data in batches, which is a great fit for modern CPUs
 * Utilizes recent advances in query optimization, with ideas from dynamic programming to unnesting arbitrary subqueries
 * Uses concurrent execution via threads, which allows for faster execution of queries, and is a great fit for modern multi-threaded CPUs
 * Utilizes a dialect of SQL that is very similar to Postgres (unlike Clickhouse, which deviates quite far from PostgreSQL)
-* **Possibly the most important**: DuckDB has the potential to become a universal data connector[^5], due to the sheer number of data formats it's able to natively read data from
+* **Possibly the most important**: DuckDB has fast become a universal data connector[^5], due to the sheer number of data formats it's able to natively read data from
   * A lot of ETL processes involve expensive transformations that reshape data from one form to another
   * DuckDB natively reads from formats like CSV, JSON (including nested JSON), Parquet, and has scanners to directly read from Postgres and SQLite databases
+  * Thanks to the Arrow format, data can very easily move from a DuckDB table to a Pandas or Polars DataFrame, and vice-versa
   * It also offers connectors that allow users to directly read Parquet data from S3, GCS and Azure storage
 
+Because DuckDB **natively** supports a lot of these formats, it's able to perform efficient scans on-disk, without having to materialize them in-memory all the time (unlike Pandas).
 
-Because DuckDB also natively supports the Arrow in-memory format, it's trivial to transform data from relational tables to JSON, and back, and also to transform the data from the relational model to the graph model, as will be shown in a future post on KùzuDB.
+{{<figure src="embedded-db-duckdb.png" caption="A productive DuckDB setup for large (100M+ size) analytical workloads">}}
 
 ## KùzuDB
 
+[KùzuDB](https://kuzudb.com) is an open-source graph database management system (GDBMS), built for query speed and scalability. Its origins and motivations are quite similar to DuckDB on two counts, in that it utilizes an embedded architecture, and that it came from an academic environment. KùzuDB was built from the ground up at the University of Waterloo 🇨🇦, and builds on top of decades of research in the implementation and architectural design of graph database management systems. It utilizes the [openCypher](https://opencypher.org/) standard to build a fully-functional, performant graph query language that allows users to access the full expressive power of graphs via the labelled property graph model.
 
+Despite being associated with the name "graph", at its core, a graph database expresses a relational model. The main difference in the internals of a GDBMS and a typical relational system is that the GDBMS is optimized for storing and querying specialized data structures that implement a graph data model, making it highly suited to use cases with a high degree of connected data like social networks, recommendation engines, fraud detection, and many others.
 
+### Key features of KùzuDB
+
+KùzuDB, being an embedded database built from scratch, incorporates some cutting-edge features that are straight out of the world of academic database research. A few of their key features for blazing fast graph query performance are listed below, as adapted from their excellent blog post, titled "*What every competent GDBMS should do"*[^7].
+
+* **Vectorized query processing**: A graph database is able to exploit the fact that the data is stored in a columnar format, and can thus process data in batches, which is a great fit for modern CPUs. This is similar to the vectorized query processing that DuckDB uses, and is a key reason for its fast performance.
+
+* **Pre-defined, pointer-based joins**: A graph database stores the neighbours of a *node* (a "record", or a "row" in SQL terminology) as pre-defined relationships. While in a relational DB, a SQL query can make no prior assumptions about which tables are being joined with another until query time, a graph database is all about exploiting the pr knowledge of existing relationships from the data, and instead uses a join index (i.e., and adjacency list index) to store these pre-defined relationships *at load time*.
+
+* **Many-to-many growing joins**: A graph database is natively designed for many-to-many joins, on data that's ever growing. If on average, each of the nodes connects with many other nodes and there are also many relationships in the pattern being searched, we're basically asking the system to search through an exponentially growing number of combinations! Relational (OLTP) databases, because of their row-oriented design, cannot optimize for this use case.
+
+* **Recursive joins**: Graph queries excel in performance for recursive join queries when compared with SQL, mainly because of the efficiency of the graph model in "hopping" over multiple levels of depth. Although SQL queries permit recursion, the idea of recursion was added as an afterthought in the relational data model, whereas in graphs, recursion is a first-class citizen.
+
+* **Schema querying**: A special feature of graph querying that cannot be done in SQL is directly querying the *schema* of the database. A graph query in Cypher contains a subject, a predicate, and an object, and we are able to define the predicate directly on the schema, not just on the nodes/relations. This allows us to express a data modelling logic that would be a lot messier in SQL. To express the predicate (connective) logic between entities in relational tables, we would need to write a verbose query involving `UNION`s and other sub-queries, but this is just one line in Cypher (see the blog post[^7] for examples).
+
+* **Semi-structured data handling**: In many cases, we may have data that contains deeply nested JSON, involving cases where one entity can have many types (a node representing Justin Trudeau can be both of type `Person`, and of type `Politician`, depending on the logic being expressed in the data model). A labelled property graph data model allows assigning multiple labels to these entities, providing added flexibility to the developer while designing the schema for the kinds of queries expected in the application.
+
+### Goals of KùzuDB
+
+The goals and vision of Kùzu are very well articulated in their blog post[^7], but the main summary is that it's designed to be a fast, scalable and easy-to-use solution for graph data science, graph machine learning (via frameworks like PyTorch Geometric) and analytics on very large graphs (upwards of 100M nodes and 1B edges). It's very well-integrated with the Python data science ecosystem, with client libraries in C++, Rust, Node.js, Java, Rust, and of course, Python.
+
+{{<figure src="embedded-db-kuzudb.png" caption="Where Kùzu sits in the graph data science & ML Stack">}}
 
 ## LanceDB
 
+[LanceDB](https://lancedb.com) is an open-source embedded database for vector search built with persistent storage, which greatly simplifies retrieval, filtering and management of embeddings. LanceDB's core is written in Rust 🦀 and is built using Lance, an open-source columnar format designed for performant ML workloads that's 100x faster than parquet[^9] for random access.
+
+### Key features of LanceDB
+
+Other than the fact that it uses an embedded architecture, what makes LanceDB different from the sea of other vector stores out there? I've spent some time thinking about this, and talked numerous folks in the industry, to come up with the list below.
+
+* Built on top of a new, efficient columnar data format, Lance, that is aimed at becoming a modern alternative to parquet that's optimized for vector search
+  * Building on top of highly efficient disk-based format like Lance allows LanceDB to proceed with confidence on its own version of the DiskANN algorithm, a modern and performant ANN index -- it's very likely that a lot of other vector DBs cannot implement DiskANN as efficiently on top of their own storage layers
+* Can be queried in a number of ways, including via SQL, full-text search (via Tantivy[^8]), and vector search (IVF-PQ, or an upcoming DiskANN index).
+* Zero-copy data access, which is a huge performance boost for disk-based indexes
+* Automatic versioning of data via Lance[^10]
+* Direct integrations with cloud storage providers like AWS S3 and Azure Blob Storage, making it possible to directly query data stored on the cloud, with no added ETL steps
+* Truly multi-modal data access, where the vector embeddings are stored alongside the actual document, not just its metadata. This allows you to persist images, audio or text documents and their embeddings in the same storage location, unlike other vector DBs, where the raw data sits separately from the embeddings/metadata.
+
+{{<figure src="embedded-db-lancedb.png" caption="Using LanceDB to power [data science, retrieval & ML workflows](https://github.com/lancedb/vectordb-recipes/tree/main)">}}
 
 ---
 
 ## Will embedded databases be commercially successful?
 
-The million-dollar question now is how successful embedded databases will be, in terms of monetizing their offerings. The client/server architecture has been around for a *very* long time, and has been proven to be a successful commercial model for numerous databases, and are the norm in large-scale production use cases. The embedded architecture is still relatively new, and several vendors are building them out as open-source technology, and are still figuring out their monetization strategies. However, the universal approach seems to be similar:
+The million-dollar question now is how commercially successful embedded databases will be in the long run. The client/server architecture has been around for a *very* long time, and has been proven to be a successful commercial model for numerous databases, which is why they are the norm in large-scale production use cases. The embedded architecture is still relatively new, at least for OLAP databases, and several vendors focusing on this section of the market are building them out as open-source technology, and are still figuring out their monetization strategies. However, the approach seems to be along the lines of the following:
 
-* Build a sound open-source offering
-* Gain a sizeable user community
-* Showcase blazing fast performance 🚀 and ease of use
-* Offer a managed cloud service that builds on top of the open-source version, with added convenience features
-  * From a pricing perspective, it would be essential to be on par with (or lower than) tried-and-tested client/server databases
+1. Build a sound open-source offering with the full functionality of their client/server counterparts
+1. Showcase blazing fast performance 🔥 and ease of use
+1. Gain a sizeable user community that advocates for its use
+1. Offer a managed cloud service that builds on top of the open-source version, with added convenience features -- from a pricing perspective, it would be essential that the cost is on par with (or lower than) tried-and-tested client/server databases
 
 {{<notice note>}}
-One can only speculate, and time will tell how successful the embedded database monetization strategy will be! But my view is that there is already ample opportunity in both small and large organizations to use embedded databases for a wide variety of use cases, and the three vendors I've mentioned in this post, in my view, seem very well-positioned to be commercially successful in the long run.
+One can only speculate, and **time** will tell how successful the various monetization strategies of embedded databases will be. My personal take is that there is already ample opportunity in both small and large organizations to use embedded databases for a wide variety of use cases, and the three vendors I've mentioned in this post, in my view, seem the best-positioned in their markets to be 💰 commercially successful in the long run.
 {{</notice>}}
 
 ### DuckDB + MotherDuck
 
-In 2023, DuckDB made large strides on the monetization front, with its [MotherDuck](https://motherduck.com/company/) commercial cloud offering (currently in beta). It offers the following convenience features on top of its open-source offering[^4], designed specifically for serverless deployment on the cloud.
+In early 2023, DuckDB made significant strides on the monetization front, with its [MotherDuck](https://motherduck.com/company/) commercial cloud offering (currently in beta). It offers the following convenience features on top of its open-source offering[^4], designed specifically for serverless deployment on the cloud.
 
 * Convenient persistent storage via a managed service
 * Hybrid execution mode, allowing seamlessly combining querying from in-memory, on-disk, or on-cloud, in a fully distributed fashion
@@ -138,17 +161,16 @@ In 2023, DuckDB made large strides on the monetization front, with its [MotherDu
 KùzuDB is still in its early days, but is the furthest ahead among graph DB vendors the quest to provide a scalable and easy-to-use embedded graph DB.
 
 * [Kùzu](https://kuzudb.com/) is a powerful, open-source, ACID-compliant graph database **ready for production**, with great support for the openCypher query language
-  * My experiments with it show it to be blazing fast 🔥, and it's able to handle large-scale graph queries with ease: a separate blog to come on this soon!
-* As they mention in their blog[^6], Kùzu is aiming to emulate in the graph database world what DuckDB has done in the SQL world, and gain widespread adoption through a sound core that's open-source and scalable
-* As the use cases for graph data structures & algorithms proliferate into ML/AI applications, my take is that an as-yet unannounced commercial offering from KùzuDB stands to be a serious competitor to Neo4j in the graph DB space 😎
+  * My ongoing experiments show it to be blazing fast 🔥, and it's able to handle large-scale graph queries with ease: a separate blog to come on this soon!
+* As they mention in their blog[^7], Kùzu is aiming to emulate in the graph database world what DuckDB has done in the SQL world, and gain widespread adoption through a sound core that's open-source and scalable
+* As the use cases for graph data structures & algorithms proliferate into ML/AI and LLM applications, my take is that an as-yet unannounced commercial offering from KùzuDB could be hugely valuable in building analytics tools powered by graphs
 
 ### LanceDB + LanceDB Cloud
 
-LanceDB is making waves in the world of vector DBs, and although it's still in its early days, it's coming out to be the primary option for vector querying and search directly on cloud storage[^7], in a similar way to DuckDB. I've written more about its unique features in my [other post](../vector-db-3/#conclusions) on vector DBs, specifically focusing on the power of its upcoming DiskANN implementation.
-
-Due to the unique nature of [Lance](https://github.com/lancedb/lance), a new, columnar data format optimized for vector compute (and on top of which LanceDB is built), the management of vector storage and versioning on the cloud is an interesting area that LanceDB is looking to revolutionize. Some of the convenience features on [LanceDB Cloud](https://lancedb.com/), currently in beta, are described below.
+LanceDB has been making waves in the world of vector DBs, and although it's also still in its early days, it's differentiating itself from its competitors by offering innovative vector querying and search directly on cloud storage[^8], in a similar way to DuckDB. Due to the unique nature of [Lance](https://github.com/lancedb/lance), a new, columnar data format optimized for vector compute (and on top of which LanceDB is built), the management of vector storage and versioning on the cloud is an interesting area that LanceDB is looking to revolutionize. Some of the convenience features on [LanceDB Cloud](https://lancedb.com/), currently in beta, are described below.
 
 * Managed service to store and version Lance datasets in the cloud
+* Distributed computing workloads via a managed service
 * Auto re-indexing
 * Caching layer
 * Dashboard to more conveniently manage your data
@@ -156,15 +178,19 @@ Due to the unique nature of [Lance](https://github.com/lancedb/lance), a new, co
 
 ## Conclusions
 
-This was just an initial foray into the fascinating world of embedded databases. As a developer interested in all data model paradigms, I can only speculate on the long-term commercial outcomes of these solutions, but, in the upcoming posts in this series, I'll go deeper into writing code for each of the three solutions I've mentioned here. Specifically, I'll showcase code examples on timing the performance of each DB vs. traditional (client/server) databases in this space. Hope this was interesting, and more to come soon! 🚀
+This post gave a rather detailed (and in my view, necessary) overview of the embedded DB landscape, specifically focusing on databases across the relational, graph and vector paradigms. Although each of these databases is built in a different language (C++ vs. Rust), the power of the underlying Arrow format effectively unifies these otherwise distinct paradigms, allowing for seamless data transfer and a LOT more flexibility in data modelling for complex use cases. 
 
+I believe that these major developments will make embedded databases much more popular among data scientists and ML practitioners in the coming years. As a developer who's interested in one and all data model paradigms, I can only speculate on the *commercial* angle of these solutions, and my primary interest is in using them, and documenting their performance at a technical capacity. In the upcoming posts in this series, I'll go deeper into examples with code on each for these solutions.
 
-[^1]: IoT connected devices worldwide, [Statista](https://www.statista.com/statistics/1183457/iot-connected-devices-worldwide/)
-[^2]: *Big data is dead* by Jordan Tigani, [MotherDuck blog](https://motherduck.com/blog/big-data-is-dead/)
-[^3]: B*ig data is dead... Long live big data!* by Aditya Parameswaran, [ponder.io](https://ponder.io/big-data-is-dead-long-live-big-data/)
-[^4]: Standing on the shoulders of giants, [DuckDB docs](https://duckdb.org/why_duckdb.html#standing-on-the-shoulders-of-giants)
+Onward and upward! 🚀
+
+[^1]: *Big data is dead* by Jordan Tigani, [MotherDuck blog](https://motherduck.com/blog/big-data-is-dead/)
+[^2]: *Big data is dead... Long live big data!* by Aditya Parameswaran, [ponder.io](https://ponder.io/big-data-is-dead-long-live-big-data/)
+[^3]: Standing on the shoulders of giants, [DuckDB docs](https://duckdb.org/why_duckdb.html#standing-on-the-shoulders-of-giants)
+[^4]: DuckDB vs. MotherDuck, [Kestra blog](https://kestra.io/blogs/2023-07-28-duckdb-vs-motherduck)
 [^5]: Why we built Rill with DuckDB, [Rill blog](https://www.rilldata.com/blog/why-we-built-rill-with-duckdb)
-[^4]: MotherDuck, [DuckDB](https://kestra.io/blogs/2023-07-28-duckdb-vs-motherduck)
-[^5]: Building on top of RocksDB, [Cockroach Labs blog](https://www.cockroachlabs.com/blog/cockroachdb-on-rocksd/)
-[^6]: What every competent graph database system should do, [KùzuDB blog](https://kuzudb.com/docusaurus/blog/what-every-gdbms-should-do-and-vision/)
-[^7]: *S3 backed full-text search with Tantivy* by Rob Meng, [LanceDB blog](https://blog.lancedb.com/s3-backed-full-text-search-with-tantivy-part-1-ac653017068b)
+[^6]: Building on top of RocksDB, [Cockroach Labs blog](https://www.cockroachlabs.com/blog/cockroachdb-on-rocksd/)
+[^7]: What every competent graph database management system should do, [KùzuDB blog](https://kuzudb.com/docusaurus/blog/what-every-gdbms-should-do-and-vision/)
+[^8]: *S3 backed full-text search with Tantivy* by Rob Meng, [LanceDB blog](https://blog.lancedb.com/s3-backed-full-text-search-with-tantivy-part-1-ac653017068b)
+[^9]: Benchmarking random access in Lance, [LanceDB blog](https://blog.eto.ai/benchmarking-random-access-in-lance-ed690757a826)
+[^10]: Building a time machine with Lance, [LanceDB blog](https://blog.lancedb.com/building-a-time-machine-with-lance-3b14ab536232)
