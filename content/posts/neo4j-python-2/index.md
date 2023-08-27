@@ -2,7 +2,7 @@
 title: "Neo4j for Pythonistas: Part 2"
 description: "Build a REST API on top of a Neo4j graph"
 date: 2023-06-04
-tags: ["neo4j", "async"]
+tags: ["neo4j", "async", "graph-db"]
 categories: ["databases", "api", "etl"]
 ---
 
