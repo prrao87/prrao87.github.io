@@ -89,7 +89,7 @@ Because DuckDB **natively** supports a lot of these formats, it's able to perfor
 
 [KùzuDB](https://github.com/kuzudb/kuzu) is an open-source graph database management system (GDBMS), built for query speed and scalability, and is implemented in C++. Its origins and motivations are quite similar to DuckDB on two counts, in that it utilizes an embedded architecture, and that it came from an academic environment. KùzuDB is being actively developed at the University of Waterloo 🇨🇦, and builds on top of decades of research in the implementation and architectural design of graph database management systems. It utilizes the [openCypher](https://opencypher.org/) standard to implement a fully-functional, performant graph query language that allows users to access the full expressive power of graphs via the labelled property graph model.
 
-Despite the term "graph", a graph database, at its code, expresses a relational model. The main difference in the internals of a GDBMS and a typical relational system is that the GDBMS is optimized for storing and querying specialized data structures that represent a graph data model, making it highly suited to datasets with a high degree of connectivity like social networks, recommendation engines, fraud detection, and many others.
+Despite the term "graph", a graph database, at its core, expresses a relational model. The main difference in the internals of a GDBMS and a typical relational system is that the GDBMS is optimized for storing and querying specialized data structures that represent a graph data model, making it highly suited to datasets with a high degree of connectivity like social networks, recommendation engines, fraud detection, and many others.
 
 ### Key features of KùzuDB
 
@@ -109,7 +109,7 @@ KùzuDB, being an embedded database built from scratch, incorporates some cuttin
 
 ### Goals of KùzuDB
 
-The goals and vision of Kùzu are very well articulated in their blog post[^7], but the main summary is that it's designed to be a fast, scalable and easy-to-use solution for graph data science, graph machine learning (via frameworks like PyTorch Geometric) and analytics on very large graphs (upwards of 100M nodes and 1B edges). It's very well-integrated with the Python data science ecosystem, with client libraries in C++, Rust, Node.js, Java, Rust, and of course, Python.
+The goals and vision of Kùzu are very well articulated in their blog post[^7], but the main summary is that it's designed to be a fast, scalable and easy-to-use solution for graph data science, graph machine learning (via frameworks like PyTorch Geometric) and analytics on very large graphs (upwards of 100M nodes and 1B edges). It's very well-integrated with the Python data science ecosystem, with client libraries in C++, Rust, Node.js, Java and of course, Python.
 
 {{<figure src="embedded-db-kuzudb.png" caption="Where Kùzu sits in the graph data science & ML Stack">}}
 
@@ -143,7 +143,7 @@ The million-dollar question now is how commercially successful embedded database
 1. Offer a managed cloud service that builds on top of the open-source version, with added convenience features -- from a pricing perspective, it would be essential that the cost is on par with (or lower than) tried-and-tested client/server databases
 
 {{<notice note>}}
-One can only speculate, and **time** will tell how successful the various monetization strategies of embedded databases will be. My personal take is that there is already ample opportunity in both small and large organizations to use embedded databases for a wide variety of use cases, and the three vendors I've mentioned in this post, in my view, seem the best-positioned in their markets to be 💰 commercially successful in the long run.
+One can only speculate, and **time** will tell how successful the various monetization strategies of embedded databases will be. My personal take is that there is already ample opportunity in both small and large organizations to use embedded databases for a wide variety of use cases, and the three vendors I've mentioned in this post, in my view, seem the best-positioned in their domains to be 💰 commercially successful in the long run.
 {{</notice>}}
 
 ### DuckDB + MotherDuck
@@ -178,9 +178,9 @@ LanceDB has been making waves in the world of vector DBs, and although it's also
 
 ## Conclusions
 
-This post gave a rather detailed (and in my view, necessary) overview of the embedded DB landscape, specifically focusing on databases across the relational, graph and vector paradigms. Although each of these databases is built in a different language (C++ vs. Rust), the power of the underlying Arrow format effectively unifies these otherwise distinct paradigms, allowing for seamless data transfer and a LOT more flexibility in data modelling for complex use cases. 
+This post gave a rather detailed (and in my view, necessary) overview of the embedded DB landscape, specifically focusing on solutions in the relational, graph and vector paradigms. Although each of these tools is built in a different language (C++ or Rust) and caters to a different data model, the power of the underlying Arrow format effectively unifies these otherwise distinct paradigms, allowing for seamless data transfer and a LOT more flexibility for the developer in data modelling in complex use cases.
 
-I believe that these major developments will make embedded databases much more popular among data scientists and ML practitioners in the coming years. As a developer who's interested in one and all data model paradigms, I can only speculate on the *commercial* angle of these solutions, and my primary interest is in using them, and documenting their performance at a technical capacity. In the upcoming posts in this series, I'll go deeper into examples with code on each of these solutions.
+I believe that these major developments will make embedded databases much more popular among data scientists and ML practitioners in the coming years. As a developer who's interested in one and all modelling paradigms, I can only speculate on the commercial angle of these solutions, and my primary interest is in using them, and documenting their performance at a technical capacity. In the upcoming posts in this series, I'll go deeper into examples with code on each of these solutions.
 
 Onward and upward! 🚀
 
