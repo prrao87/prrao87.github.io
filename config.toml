@@ -20,12 +20,12 @@ paginate = 20
   description = "Data engineering, databases, software, programming languages and API development"
   info = ["`The Data Quarry`", "Databases, APIs, programming languages, and everything in between"]
   keywords = "blog,data-engineering,python"
-  avatarurl = "images/lake-7884049_640.jpg"
+  avatarurl = "images/dataquarry-banner.png"
 
-  since = 2018
+  favicon_32 = "images/favicon-32x32.png"
+  favicon_16 = "images/favicon-16x16.png"
 
   enableTwemoji = true
-
   colorScheme = "auto"
   hidecolorschemetoggle = false
 
