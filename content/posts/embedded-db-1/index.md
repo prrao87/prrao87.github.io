@@ -29,19 +29,19 @@ The bottom part of the image is particularly interesting: [Arrow](https://arrow.
 
 ### What are embedded databases?
 
-Embedded databases are **in-process** database management systems that are tightly integrated with the application layer. The term "in-process" is important because the database computation runs within the same underlying process as the application (which could be written in any language, like Python, R, JavaScript, C++). In the case of RocksDB, an open-source embedded key-value database written in C++, the application it runs inside could *itself be another database*[^6]!
+Embedded databases are **in-process** database management systems that are tightly integrated with the application layer. The term "in-process" is important because the database computation runs within the same underlying process as the application (which could be written in any language, like Python, R, JavaScript, C++). In the case of RocksDB, an open-source embedded key-value database written in C++, the application it runs inside[^6] could *itself be another database*!
 
-A key characteristic of embedded databases is that they are designed from the ground up to clearly separate storage from compute -- data that's larger than memory can be stored and queried on-disk, allowing them to scale to all sizes of data (up to 100M+ data points).
+A key characteristic of embedded databases is that they clearly separate storage from compute -- data that's larger than memory can be stored and queried on-disk, allowing them to scale to nearly all sizes of data (100M+ data points).
 
 {{<notice info>}}
 
-💡 In the database community, embedded databases are often referred to as *serverless* databases, because they do not require a client/server architecture (as is prevalent in most large-scale software systems). If you're looking at this from a cloud or microservices perspective, the term "serverless" can mean something different altogether, so I'll not be using the terms "embedded" and "serverless" interchangeably in this series on database architectures.
+💡 In the database community, embedded databases are often referred to as *serverless* databases, because they do not require a client/server architecture (as is prevalent in most large-scale software systems). If you're looking at this from a cloud or microservices perspective, the term "serverless" can mean something different altogether, so I'll not be using the terms "embedded" and "serverless" interchangeably in this series on databases.
 
 {{</notice>}}
 
 ### A breakdown of the landscape
 
-The three databases we will focus on are but part of a larger landscape of embedded DBs, which are out of the scope of this series. However, it makes sense to first gain a birds-eye view at the breakdown of the embedded landscape.
+The three databases we will focus on are but part of a larger landscape of embedded DBs, many of which are out of the scope of this series. However, it makes sense to first gain a birds-eye view of the breakdown of the landscape.
 
 {{<figure src="embedded-db-landscape.png" caption="Embedded databases organized by data model paradigm">}}
 
@@ -87,17 +87,17 @@ Because DuckDB **natively** supports a lot of these formats, it's able to perfor
 
 ## KùzuDB
 
-[KùzuDB](https://kuzudb.com) is an open-source graph database management system (GDBMS), built for query speed and scalability. Its origins and motivations are quite similar to DuckDB on two counts, in that it utilizes an embedded architecture, and that it came from an academic environment. KùzuDB was built from the ground up at the University of Waterloo 🇨🇦, and builds on top of decades of research in the implementation and architectural design of graph database management systems. It utilizes the [openCypher](https://opencypher.org/) standard to build a fully-functional, performant graph query language that allows users to access the full expressive power of graphs via the labelled property graph model.
+[KùzuDB](https://github.com/kuzudb/kuzu) is an open-source graph database management system (GDBMS), built for query speed and scalability, and is implemented in C++. Its origins and motivations are quite similar to DuckDB on two counts, in that it utilizes an embedded architecture, and that it came from an academic environment. KùzuDB is being actively developed at the University of Waterloo 🇨🇦, and builds on top of decades of research in the implementation and architectural design of graph database management systems. It utilizes the [openCypher](https://opencypher.org/) standard to implement a fully-functional, performant graph query language that allows users to access the full expressive power of graphs via the labelled property graph model.
 
-Despite being associated with the name "graph", at its core, a graph database expresses a relational model. The main difference in the internals of a GDBMS and a typical relational system is that the GDBMS is optimized for storing and querying specialized data structures that implement a graph data model, making it highly suited to use cases with a high degree of connected data like social networks, recommendation engines, fraud detection, and many others.
+Despite the term "graph", a graph database, at its code, expresses a relational model. The main difference in the internals of a GDBMS and a typical relational system is that the GDBMS is optimized for storing and querying specialized data structures that represent a graph data model, making it highly suited to datasets with a high degree of connectivity like social networks, recommendation engines, fraud detection, and many others.
 
 ### Key features of KùzuDB
 
-KùzuDB, being an embedded database built from scratch, incorporates some cutting-edge features that are straight out of the world of academic database research. A few of their key features for blazing fast graph query performance are listed below, as adapted from their excellent blog post, titled "*What every competent GDBMS should do"*[^7].
+KùzuDB, being an embedded database built from scratch, incorporates some cutting-edge features straight out of the world of academic database research. A few of their key features for blazing fast graph query performance are listed below, as adapted from their excellent blog post, titled "*What every competent GDBMS should do"*[^7].
 
-* **Vectorized query processing**: A graph database exploits the underlying relational structure of the data and stores it via an efficient columnar format, stored in blocks, so that queries and aggregations can be processed in a vectorized fashion, fully exploiting the power of multiple threads in modern CPUs.
+* **Vectorized query processing**: A graph database exploits the underlying relational structure of the data and stores it via an efficient columnar format in blocks, so that queries and aggregations can be processed in a vectorized fashion, fully exploiting the power of multiple threads on modern CPUs.
 
-* **Pre-defined, pointer-based joins**: A graph database stores the neighbours of a *node* (a "record", or a "row" in SQL terminology) as pre-defined relationships. While in a relational DB, a SQL query can make no prior assumptions about which tables are being joined with another until query time, a graph database is all about exploiting the pr knowledge of existing relationships from the data, and instead uses a join index (i.e., and adjacency list index) to store these pre-defined relationships *at load time*.
+* **Pre-defined, pointer-based joins**: A graph database stores the neighbours of a *node* (a "record", or a "row" in SQL terminology) as pre-defined relationships. While in a relational DB, a SQL query can make no prior assumptions about which tables are being joined with each other until query time, a graph database is all about exploiting the prior knowledge of existing relationships from the data, and instead uses a join index (i.e., and adjacency list index) to store these pre-defined relationships *at load time*.
 
 * **Many-to-many growing joins**: A graph database is natively designed for many-to-many joins, on data that's ever growing. If on average, each of the nodes connects with many other nodes and there are also many relationships in the pattern being searched, we're basically asking the system to search through an exponentially growing number of combinations! Relational (OLTP) databases, because of their row-oriented design, cannot optimize for this use case.
 
