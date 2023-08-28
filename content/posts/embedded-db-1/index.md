@@ -95,7 +95,7 @@ Despite being associated with the name "graph", at its core, a graph database ex
 
 KùzuDB, being an embedded database built from scratch, incorporates some cutting-edge features that are straight out of the world of academic database research. A few of their key features for blazing fast graph query performance are listed below, as adapted from their excellent blog post, titled "*What every competent GDBMS should do"*[^7].
 
-* **Vectorized query processing**: A graph database is able to exploit the fact that the data is stored in a columnar format, and can thus process data in batches, which is a great fit for modern CPUs. This is similar to the vectorized query processing that DuckDB uses, and is a key reason for its fast performance.
+* **Vectorized query processing**: A graph database exploits the underlying relational structure of the data and stores it via an efficient columnar format, stored in blocks, so that queries and aggregations can be processed in a vectorized fashion, fully exploiting the power of multiple threads in modern CPUs.
 
 * **Pre-defined, pointer-based joins**: A graph database stores the neighbours of a *node* (a "record", or a "row" in SQL terminology) as pre-defined relationships. While in a relational DB, a SQL query can make no prior assumptions about which tables are being joined with another until query time, a graph database is all about exploiting the pr knowledge of existing relationships from the data, and instead uses a join index (i.e., and adjacency list index) to store these pre-defined relationships *at load time*.
 
