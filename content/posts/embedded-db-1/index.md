@@ -5,7 +5,6 @@ title = "Embedded databases (1): The harmony of DuckDB, KùzuDB and LanceDB"
 description = "A look at how embedded databases enable easy navigation between relational, graph and vector paradigms"
 tags = ["embedded-db", "vector-db", "graph-db"]
 categories = ["databases"]
-featuredImage = "https://github.com/prrao87/prrao87.github.io/tree/main/content/posts/embedded-db-1/embedded-db-breakdown.png"
 +++
 
 ## Embedded databases are here to stay
