@@ -73,7 +73,7 @@ In total, ~100K nodes and ~2.5 million edges are ingested **~18x** faster in Kù
 {{<figure src="kuzudb-neo4j-ingestion-perf.png" caption="When ingesting data via their Python clients, Kùzu is ~18x faster than Neo4j for this dataset">}}
 
 {{<notice note>}}
-In all fairness, it's definitely possible to further speed up data ingestion in Neo4j through tricks like `apoc.periodic.iterate`, using the Java API, or the `neo4j-admin` import tool, and these methods require CSV as the input format, so they won't work here unless we convert them to CSV as an added step. As such, this benchmark aims to use Python to do everything end-to-end.
+In all fairness, it's definitely possible to further speed up data ingestion in Neo4j through tricks like `apoc.periodic.iterate`, using the Java API, or the `neo4j-admin` import tool, but these methods require CSV as the input format, and would also need glue code to integrate the data loading with an otherwise Python-based workflow. As such, this benchmark aims to use Python to do everything end-to-end, as is commonly done in real-world data engineering workflows.
 {{</notice>}}
 
 Data loading performance isn't the main focus of this study, so we can leave this topic here and move on to the more interesting part -- querying the graph!
