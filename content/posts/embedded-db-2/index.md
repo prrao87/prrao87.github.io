@@ -556,7 +556,7 @@ As can be seen, KùzuDB is faster than Neo4j in all queries, for a multitude of 
 
 #### Vectorized execution
 
-Kùzu, executes queries in a vectorized fashion, enabled by the fact that data is stored natively in columnar format and accessed in batches. This is a similar approach as is used in numerous other OLAP DBMSs such as DuckDB[^3] and ClickHouse[^4]. In modern CPUs, column-oriented storage allows better cache utilization, while also allowing developers to take advantage of SIMD, a type of parallel processing that can perform the same operation on multiple data points via a single instruction.
+Kùzu executes queries in a vectorized fashion, enabled by the fact that data is stored natively in a column-oriented manner and accessed in batches. This is a similar approach as used by numerous other OLAP DBMSs such as DuckDB[^3] and ClickHouse[^4]. In modern hardware, column-oriented storage allows better cache utilization, while also allowing CPU optimizations that take advantage of SIMD, a type of parallel processing that performs the same operation on multiple data points via a single instruction.
 
 #### Multi-threaded execution
 
