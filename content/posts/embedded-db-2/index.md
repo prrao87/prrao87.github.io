@@ -53,7 +53,7 @@ As a result, the generated graph between persons has some interesting structures
 
 {{<figure src="person-person.png" caption="Cliques, trees and cycles in the graph of connected persons">}}
 
-A detailed explanation on the dataset generation is shown in the [GitHub repo](https://github.com/prrao87/kuzudb-study/tree/main/data). Note that the data is generated using a fixed random seed, so **it is fully reproducible**, and the number of artificial nodes and edges generated can be scaled up or down, in a fully reproducible manner, as needed.
+A detailed explanation on the dataset generation is shown in the [GitHub repo](https://github.com/prrao87/kuzudb-study/tree/main/data). Note that the data is generated using a fixed random seed, so **it is fully reproducible**, and the number of artificial nodes and edges generated can be scaled up or down, reproducibly, as needed.
 
 
 ## Data ingestion
@@ -61,8 +61,8 @@ A detailed explanation on the dataset generation is shown in the [GitHub repo](h
 The data for the artificially generated nodes and edges are saves to parquet format, transformed to a list of dictionaries in Python, and ingested to either DB.
 
 * Data is ingested to Neo4j via the async API of the [Neo4j Python client](https://github.com/neo4j/neo4j-python-driver).
-  * Best practices as per the Neo4j docs for data ingestion via Python are followed, such as setting uniqueness constraints on nodes and relationships, and using `UNWIND` to ingest data in batches.
-* Kùzu, being an embedded database, comes with a Python API that can be accessed by simply using `pip install kuzu`.
+  * Best practices as per the Neo4j docs for data ingestion via Python are followed, such as setting uniqueness constraints on node IDs, and using `UNWIND` to ingest data in batches.
+* Kùzu, being an embedded database, comes with a Python API that can be accessed by simply using `pip install kuzu`, and ingested directly from parquet via its bulk loader.
 
 The code for data ingestion is in the files `build_graph.py` in either directory of the [GitHub repo](https://github.com/prrao87/kuzudb-study).
 
@@ -494,12 +494,11 @@ shape: (1, 1)
 └──────────┘
 ```
 
-This is interesting! Because the number of paths explode in complexity when it comes to multi-hop traversals, the speedup factor for Kùzu is **much** higher than the other queries, at ~180x! This is due to the fact that Kùzu implements factorized query execution, which we will explore more in the discussion section.
-
 Query | Neo4j (sec) | Kùzu (sec) | Speedup factor
 :---: | ---: | ---: | :---:
 8 | 3.4529 | 0.0191212 | 180.5
 
+This is interesting! Because the number of paths explode in complexity when it comes to multi-hop traversals, the speedup factor for Kùzu is **much** higher than the other queries, at ~180x! This is due to the fact that Kùzu implements factorized query execution, which we will explore more in the discussion section.
 
 #### Query 9
 
@@ -540,11 +539,11 @@ shape: (1, 1)
 └──────────┘
 ```
 
-The speedup is **even greater** than the previous query, at ~188x, because filtering on node properties for paths that explode in complexity can have a significant overhead in large graphs.
-
 Query | Neo4j (sec) | Kùzu (sec) | Speedup factor
 :---: | ---: | ---: | :---:
 9 | 4.2707 | 0.0226162 | 188.7
+
+As can be seen, the speedup is **even greater** than the previous query, at ~188x, because filtering on node properties for paths that explode in complexity can incur a significant overhead in large graphs.
 
 ## Discussion: Why was Kùzu *that* much faster than Neo4j?
 
@@ -580,7 +579,7 @@ WHERE b.age < 50 AND c.age > 25
 RETURN COUNT(*) as numPaths
 ```
 
-To analyze what Kùzu's query planner is doing, we will consider two nodes `b` of type `Person` that sit in the middle of the path, having 100 incoming edges and 100 outgoing edges. This can be represented graphically as follows.
+To analyze what Kùzu's query planner is doing, we will consider two nodes `b` of type `Person` that sit in the middle of the second-degree paths, having 100 incoming edges and 100 outgoing edges. This can be represented graphically as follows.
 
 {{<figure src="kuzudb-factorization-graph.png">}}
 
@@ -588,7 +587,7 @@ During query processing, the information that flows between pipeline operators c
 
 {{<figure src="kuzudb-factorization-table.png" caption="Image inspired by this excellent Kùzu [blogpost](https://kuzudb.com/docusaurus/blog/factorization)">}}
 
-As can be seen, the initial flat representation in this simple example had $2 \times (100 \times 100) = 20000$ tuples. However, after factorization, the number of tuples is reduced to $2 \times (100 + 100) = 400$ tuples. This is a **50x** reduction in the number of tuples that need to be processed by the query engine, which is already huge. In the real dataset, the data reduction due to factorization is more like **100x**, and this only grows as we traverse a greater depth in the graph, explaining why these sorts of path-finding queries are so much faster in Kùzu than in Neo4j.
+As can be seen, the initial flat representation in this simple example had $2 \times (100 \times 100) = 20000$ tuples. However, after factorization, the number of tuples is reduced to $2 \times (100 + 100) = 400$ tuples. This is a **50x** reduction in the number of tuples that need to be processed by the query engine, which is already huge. In the real dataset, the data reduction due to factorization is more like **100x**, and this only grows as we traverse greater depths in the graph, explaining why these sorts of multi-hop path-finding queries are so much faster in Kùzu than in Neo4j.
 
 ## Conclusions
 
