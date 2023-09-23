@@ -190,10 +190,10 @@ RETURN
   city.country AS country
 ```
 
-Query 2 is very similar to query 1, but it attaches a subquery to find the city in which the most-followed person lives.
-
   {{< /tab >}}
 {{< /tabgroup >}}
+
+Query 2 is very similar to query 1, but it attaches a subquery to find the city in which the most-followed person lives.
 
 ```sh
 City in which most-followed person lives:
@@ -561,7 +561,7 @@ In this section, I'll dig a bit deeper into some of the key innovations of Kùzu
 
 {{<figure src="kuzudb-neo4j-query-perf-multi-threaded.png" caption="Kùzu's [speedup](https://github.com/prrao87/kuzudb-study) over Neo4j across 9 queries while running freely on multiple threads 🔥">}}
 
-As can be seen, KùzuDB is faster than Neo4j in all queries, for a multitude of reasons that can be a bit tricky to tease apart.
+There are a multitude of reasons why KùzuDB is faster than Neo4j in all queries, and they can be a bit tricky to tease apart. We'll go through each of them in turn.
 
 #### Vectorized execution
 
