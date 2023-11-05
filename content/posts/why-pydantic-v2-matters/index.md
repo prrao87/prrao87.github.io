@@ -352,7 +352,7 @@ Hopefully this post will serve as an inspiration for you to begin exploring (and
 
 ## Reproduce the benchmark
 
-The code and the data to reproduce these results are [available on GitHub](https://github.com/prrao87/pydantic-v2-test-drive). Depending on the CPU your machine uses, your mileage may vary. Have fun and happy Pydant-ing! 😎
+The code and the data to reproduce these results are [available on GitHub](https://github.com/prrao87/pydantic-benchmarks). Depending on the CPU your machine uses, your mileage may vary. Have fun and happy Pydant-ing! 😎
 
 
 [^1]: Pydantic [docs](https://docs.pydantic.dev/latest)
