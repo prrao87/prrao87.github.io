@@ -3,7 +3,7 @@ draft = true
 date = 2023-11-19
 title = "Embedded databases (3): LanceDB and the modular data stack"
 description = "A case study of LanceDB, an embedded vector DB for full-text, SQL and semantic search"
-tags = ["embedded-db", "vector-db"]
+tags = ["embedded-db", "vector-db", "rust"]
 categories = ["databases"]
 +++
 
@@ -73,7 +73,7 @@ It is common to see the terms "embedded" and "serverless" used interchangeably, 
 Studying the performance of any tool in isolation doesn't make much sense, so for the sake of comparison, an Elasticsearch workflow is provided in this repo. Elasticsearch is a popular full-text and vector search engine based on Lucene (which Tantivy is inspired by), so this makes it a meaningful comparison for a benchmark.
 
 {{< notice info >}}
-🚩The goal in this section is to provide the framework for a preliminary benchmark comparing the performance of LanceDB and Elasticsearch via their Python clients, as they stand today. It is expected that the numbers shown below for LanceDB will continually improve as new versions are released, as each underlying system improves.
+🚩 This is a preliminary analysis designed to test the quality and throughput of FTS and vector search, so the results of the benchmarks are inspected on both these counts. It is expected that **the numbers shown below for LanceDB will continually improve** as new versions are released, and as each underlying system improves.
 
 As always, any benchmark should be performed on your own data and hardware to get a sense for your use case.
 {{< /notice >}}
@@ -105,7 +105,7 @@ An example JSON line containing a wine review and its metadata is shown below.
 
 ### Full-text search (FTS) queries
 
-Tantivy supports Lucene query syntax, in which the `+` symbol represents the `AND` boolean operator. The following ten keyword-based queries are used to search the `description` field of the dataset. For example, the first query below searches for documents that contain both the words `apple` and `pear` in the `description` field.
+Tantivy supports the same syntax as the [Lucene query parser](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html), in which the `+` symbol represents the `AND` boolean operator. The following ten keyword-based queries are used to search the `description` field of the dataset. For example, the first query below searches for documents that contain both the words *apple* and *pear* in the `description` field.
 
 ```txt
 +apple +pear
@@ -122,7 +122,7 @@ Tantivy supports Lucene query syntax, in which the `+` symbol represents the `AN
 
 ### Vector search queries
 
-Ten vector search queries are defined as shown below. The first query below searches for documents that are similar to the vector representation of the words 'vanilla' and 'smoky'. The second query searches for documents whose vector representations are similar to 'dessert' and 'sweetness'. You get the idea!
+Ten vector search queries are defined as shown below. The first query below searches for documents whose `description` fields are similar to the vector representation of the words *vanilla* and *smoky*. The second query searches for descriptions similar to *dessert*, *sweetness* and *tartness* in vector space. You get the idea!
 
 ```txt
 vanilla and a hint of smokiness
@@ -137,10 +137,9 @@ balanced tannins and dry and fruity composition
 peppery undertones that pairs with steak or barbecued meat
 ```
 
-
 ### Serial benchmark
 
-The serial benchmark involves sequentially running up to 10,000 randomly sampled queries in a Python for loop. This isn't representative of a realistic use case in production, but is useful to understand the throughput potential of the underlying search engines for either system.
+The serial benchmark involves sequentially running up to 10,000 randomly sampled queries in a Python `for` loop. This isn't representative of a realistic use case in production, but is useful to understand the throughput potential of the underlying search engines for either system.
 
 We first randomly sample the FTS and vector search queries, with repetition, to generate a list of queries to run sequentially.
 
@@ -151,25 +150,196 @@ import random
 random_choice_queries = [random.choice(queries) for _ in range(10_000)]
 ```
 
-These are run in a for loop for the serial benchmark:
+These are run in a `for` loop for the serial benchmark:
 
 ```python
 # args.search is either "fts" or "vector"
+# Searches a LanceDB Table
 for query in random_choice_queries:
     if args.search == "fts":
-        _ = fts_search(tbl, query)
+        fts_search(tbl, query)
     else:
-        _ = vector_search(MODEL, tbl, query)
+        # MODEL is an embedding model that converts the text query to a vector
+        vector_search(MODEL, tbl, query)
 ```
 
-For reference, the full code is [here](https://github.com/prrao87/lancedb-study/blob/main/lancedb/benchmark_serial.py).
+The script `benchmark_serial.py` is run with the following command line arguments:
 
-
+```bash
+python benchmark_serial.py --search fts --limit 10
+python benchmark_serial.py --search fts --limit 100
+python benchmark_serial.py --search fts --limit 1000
+python benchmark_serial.py --search fts --limit 10000
+```
 
 ### Concurrent benchmark
 
+Testing concurrent workflows is a more realistic use case, for example, via a user interface that passes multiple queries to the database at the same time. The approach used for concurrency (for now) is different for LanceDB and Elasticsearch, due to the fact that LanceDB (for now) exposes a synchronous connection to the database, while Elasticsearch allows asynchronous access to the DB via a REST API.
+
+Concurrent FTS and vector searches on Elasticsearch are performed by using its official async Python client, as per `app.py` [in the repo](https://github.com/prrao87/lancedb-study/blob/d4b89d85b13812a46b2b42cb4a0328a1aff3b952/elasticsearch/app.py).
+
+To perform concurrent searches on a LanceDB table, we can use `concurrent.futures.ThreadPoolExecutor` in Python, which allows us to run queries on multiple threads that await a response via a custom FastAPI endpoint. See the code for the FastAPI app on top of LanceDB [here](https://github.com/prrao87/lancedb-study/blob/main/lancedb/app.py).
+
+{{< notice info >}}
+The LanceDB multi-threaded connection is limited to run on 4 threads. It was observed that increasing the number of threads was detrimental to performance (see below sections) due to the overhead of context switching between the CPU-bound embedding generation and I/O-bound querying.
+{{< /notice >}}
+
+The FTS search takes in a FastAPI `Request` object and the search query, and returns a list of `SearchResult` objects, which are Pydantic models that contain specific fields that are validated prior to returning the response.
+
+```python
+def _fts_search(request: Request, terms: str) -> list[SearchResult] | None:
+    # In FTS, we limit to a max of 10K points to be more in line with Elasticsearch
+    search_result = (
+        request.app.table.search(terms, vector_column_name="description")
+        .select(["id", "title", "description", "country", "variety", "price", "points"])
+        .limit(10)
+    ).to_pydantic(SearchResult)
+    if not search_result:
+        return None
+    return search_result
+```
+
+The vector search is performed the same way, except that we first convert the query to a vector representation using the embedding model, the then specify the number of probes to divide the search space into for the IVF-PQ index. Just like in the FTS case, the result is converted to a Pydantic model and returned via a REST API call.
+
+```python
+def _vector_search(
+    request: Request,
+    terms: str,
+) -> list[SearchResult] | None:
+    query_vector = request.app.model.encode(terms.lower())
+    search_result = (
+        request.app.table.search(query_vector)
+        .metric("cosine")
+        .nprobes(20)
+        .select(["id", "title", "description", "country", "variety", "price", "points"])
+        .limit(10)
+    ).to_pydantic(SearchResult)
+
+    if not search_result:
+        return None
+    return search_result
+```
+
+The script `benchmark_concurrent.py` is run with the following command line arguments:
+
+```bash
+python benchmark_concurrent.py --search fts --limit 10
+python benchmark_concurrent.py --search fts --limit 100
+python benchmark_concurrent.py --search fts --limit 1000
+python benchmark_concurrent.py --search fts --limit 10000
+```
 
 ## Results
+
+{{< notice note >}}
+* The timing numbers below are from a 2022 M2 Macbook Pro with 16GB RAM
+* The dimensionality of the embeddings is **384** (`BAAI/bge-small-en-v1.5`)
+* The distance metric for vector search is **cosine similarity** in either DB
+* Vector search in Elasticsearch is based on **HNSW**, and in LanceDB, is based on **IVF-PQ**
+{{< /notice >}}
+
+### Qualitative inspection
+
+The first thing to check is whether each set of queries return sensible results. The results are inspected qualitatively, by checking that the top result (based on either FTS or vector similarity score) is similar to the query. This is done for both LanceDB and Elasticsearch via the script `query.py`. Switch between the tabs below to see the results for either solution.
+
+{{< tabgroup align="left" style="code" >}}
+  {{< tab name="LanceDB FTS" >}}
+
+```txt
+Query [+apple +pear]: The pear, apple and apple skin aromas are light. The palate brings just off-dry pear flavors with a full feel.
+Query ["tropical fruit"]: Plump tropical fruit aromas show on the nose. A fruity but not complex palate deals short melon and tropical-fruit flavors prior to a briny finish.
+Query [+citrus +almond]: Inviting aromas of butter, almond and citrus open into a rich, thickly textured wine studded with peach, almond butter and citrus pith. The slightly bitter notes echo through the finish, providing a welcome sense of balance to round mouthfeel and fatty flavors.
+Query [+orange +grapefruit]: Made from Cabernet Sauvignon, this has funky, yeasty aromas of pink grapefruit and passion fruit that turn citrusy and briny if given time. On the palate, this recalls orange juice. Orange, grapefruit and generic tang proceed from the flavor profile to the finish.
+Query [+full +bodied]: Produced from organically grown grapes, this wine is full of fragrant, clean red-fruit flavors. It is ripe and full bodied—perhaps too full-bodied for a really fresh rosé. It does have all the fruit, generous and with a soft aftertaste.
+Query ["citrus acidity"]: This soft, ripe wine has good apricot and peach flavors alongside the crisper citrus acidity. It is spicy, fruity and ready to drink.
+Query [+blueberry +mint]: Exotic aromas of cardamom, blueberry and spiced currant filter onto a fresh but wide-bodied palate with raspberry, blueberry, herb and spice flavors. The finish is intriguing due to a reprise of notes like anise, mint and herbal berry flavors.
+Query [+beef +lamb]: Tarry, savory notes of dried beef, soy, charred lamb and underlying blackberry combine for a nose that screams umami. The palate carries a similar effect of grilled, lavender-covered lamb shank, black peppercorns and black sesame.
+Query [+shellfish +seafood]: Really? A five-buck Oregon Riesling? It's light, lemony and tart, but it's real wine, simple and plain, yet fine with shellfish or other light seafood.
+Query [+vegetable +fish]: Clean mineral notes blend nicely with fresh berry fruit, red rose and raspberry. This is a simple but genuine wine that would pair with roasted fish or vegetable risotto.
+```
+
+  {{< /tab >}}
+  {{< tab name="Elasticsearch FTS" >}}
+
+```txt
+Query [+apple +pear]: The pear, apple and apple skin aromas are light. The palate brings just off-dry pear flavors with a full feel.
+Query ["tropical fruit"]: Plump tropical fruit aromas show on the nose. A fruity but not complex palate deals short melon and tropical-fruit flavors prior to a briny finish.
+Query [+citrus +almond]: Inviting aromas of butter, almond and citrus open into a rich, thickly textured wine studded with peach, almond butter and citrus pith. The slightly bitter notes echo through the finish, providing a welcome sense of balance to round mouthfeel and fatty flavors.
+Query [+orange +grapefruit]: Made from Cabernet Sauvignon, this has funky, yeasty aromas of pink grapefruit and passion fruit that turn citrusy and briny if given time. On the palate, this recalls orange juice. Orange, grapefruit and generic tang proceed from the flavor profile to the finish.
+Query [+full +bodied]: Produced from organically grown grapes, this wine is full of fragrant, clean red-fruit flavors. It is ripe and full bodied—perhaps too full-bodied for a really fresh rosé. It does have all the fruit, generous and with a soft aftertaste.
+Query ["citrus acidity"]: This soft, ripe wine has good apricot and peach flavors alongside the crisper citrus acidity. It is spicy, fruity and ready to drink.
+Query [+blueberry +mint]: Exotic aromas of cardamom, blueberry and spiced currant filter onto a fresh but wide-bodied palate with raspberry, blueberry, herb and spice flavors. The finish is intriguing due to a reprise of notes like anise, mint and herbal berry flavors.
+Query [+beef +lamb]: Tarry, savory notes of dried beef, soy, charred lamb and underlying blackberry combine for a nose that screams umami. The palate carries a similar effect of grilled, lavender-covered lamb shank, black peppercorns and black sesame.
+Query [+shellfish +seafood]: Really? A five-buck Oregon Riesling? It's light, lemony and tart, but it's real wine, simple and plain, yet fine with shellfish or other light seafood.
+Query [+vegetable +fish]: Clean mineral notes blend nicely with fresh berry fruit, red rose and raspberry. This is a simple but genuine wine that would pair with roasted fish or vegetable risotto.
+```
+
+  {{< /tab >}}
+{{< /tabgroup >}}
+
+As can be seen, the FTS results for LanceDB and Elasticsearch are identical to one another, which is heartening, considering that we had to do **zero** work to set up the search index via  Tantivy. In Elasticsearch, we had to define the index settings via [`mappings.json`](https://github.com/prrao87/lancedb-study/blob/main/elasticsearch/mapping/mapping.json).
+
+The vector search results are also inspected the same way. Switch between the tabs below to see the results for either solution.
+
+{{< tabgroup align="left" style="code" >}}
+  {{< tab name="LanceDB vector search" >}}
+
+```txt
+Query [vanilla and a hint of smokiness]: Drenched in luxurious, almost sweet fruit flavors, this tempting and delicious wine is full bodied. Ripe in aromas and on the palate, it creates a vivid and warming cherry-pie effect on the senses, and is undeniably tasty.
+Query [rich and sweet dessert wine with balanced tartness]: Not a lot of wood scents are showing, though the aging took place in roughly 50% new oak barrels. This has forward, pretty black fruits, juicy acids, some still-unresolved astringency, and aromatically it incorporates a nice herbal note, reminiscent of green tea. Still too young to drink, and the rating could go higher with more bottle age.
+Query [cherry and plum aromas]: Part of the select group of impressive wines from this year, this wine is ripe, rich and firmly structured. Black-currant fruitiness forms the base for solid tannins and a concentrated texture. The hints of wood-aging need to soften. Drink from 2022.
+Query [right balance of citrus acidity]: This straightforward wine isn't particularly Cabernet-like, but it is good and sound. With furry tannins, it has a distinct sweetness of raisins and blackberry jam, as well as lots of brambly Zinny spices. Drink up.
+Query [grassy aroma with apple and tropical fruit]: This is the finest Cheval Blanc for many years. It is, quite simply, magnificent. The wine shows the greatness of Cabernet Franc in the vintage, with 57% of the variety in the blend. It is beautifully structured and perfumed, with velvety tannins, balanced acidity and swathes of black-currant and black-cherry fruits. It's well on course to becoming a legendary wine.
+Query [bitter with a dry aftertaste]: The wine is firm with tannins as well as black-currant fruit. It does have a juicy edge that will develop well as it matures. Drink this potentially attractive wine from 2018.
+Query [sweet with a hint of chocolate and berry flavor]: Exotic, complex and vivid aromas, rich and fulfilling fruit flavors and a hefty structure form a great package in this full-bodied and extroverted wine. The winemaker allowed wild yeast and kept 30% whole clusters in the fermentation, then aged it in neutral barrels.
+Query [acidic on the palate with oak aromas]: A lovely young Cab, rich and balanced, and with the elegance you expect from this producer. Made from all 5 Bordeaux varieties, with a drop of Syrah, the wine is potent in red and black currant, blackberry and new oak flavors, with sweetly ripe tannins. Delicious now, it should develop through 2015.
+Query [balanced tannins and dry and fruity composition]: A 100% varietal Pinot, this wine has a faint bouquet of ripe black cherry and blackberry, exuding full flavor and body. Smooth, the oak is low impact, providing extra weight and sustenance while remaining balanced with the fruit.
+Query [peppery undertones that pairs with steak or barbecued meat]: This arresting wine has aromas of forest floor, strawberry and cola. It's light and lithe in feel yet still richly flavored with a lingering finish.
+```
+
+  {{< /tab >}}
+  {{< tab name="Elasticsearch vector search" >}}
+
+```txt
+Query [vanilla and a hint of smokiness]: Vanilla and maple aromas lead to overtly fruity red cherry flavors with a touch of sweetness and a soft texture. It's pleasant to drink for those looking for a soft touch, with very mild acidity and no tannin to speak of.
+Query [rich and sweet dessert wine with balanced tartness]: This richly extracted dessert wine boasts a dark, inky appearance and aromas of exotic spice, nutmeg, cinnamon, dark chocolate, carob, roasted chestnut and mature blackberries. It is smooth, well textured and exceedingly rich on the close with loads of power, personality and persistency.
+Query [cherry and plum aromas]: Earthy, herbal aromas of cherry and plum come with a funky note of wet dog fur. Hailing from a cool, wet vintage, this is showing shearing acidity and abrasiveness. Quick-hitting raspberry, plum and red-currant flavors end with edginess and snap. This is 40% each Cabernets Sauvignon and Franc, with 20% Monastrell.
+Query [right balance of citrus acidity]: True to its name, this blend is tangy in acidity. Flavorwise, it's simple, with pleasant orange, peach, lemon and vanilla flavors that finish a little sweet.
+Query [grassy aroma with apple and tropical fruit]: Spring flower aromas mingle with a hint of orchard fruit. On the lean, extremely simple palate, yellow apple fruit mixes with a lemon zest note.
+Query [bitter with a dry aftertaste]: Even at a considerable 15 g/l of residual sugar, this wine comes across as almost dry, thanks to its crisp acidity. Scents of petrichor, green apple and lime start things off, while those razor-sharp acids show up on the finish. Drink now.
+Query [sweet with a hint of chocolate and berry flavor]: A bouquet of cherry, white chocolate and juniper berry sets the stage for flavors of raspberry, blackberry, blueberry pie and baking spices. It is smooth in the mouth, with a sense of soft sweetness that is neither overpowering nor cloying, bolstered by a pervasive backbone of acidity.
+Query [acidic on the palate with oak aromas]: The oaky smoke is quite powerful on the nose, which also shows vanilla dust and lime juice. The palate is anything but austere, full of toast, caramelized apples and smoked fruits. A line of citrus acidity stops it from becoming flabby, but this is definitely for the oak lovers crowd.
+Query [balanced tannins and dry and fruity composition]: There is a good core of tannin here, the fruit sweet plums and ripe tannins, relatively soft and easy. Only that kernel of tannin offers some aging possibility.
+Query [peppery undertones that pairs with steak or barbecued meat]: An easy red blend, this would pair well with hamburgers or grilled meats. Notes of cherry and blackberry accent the palate.
+```
+  {{< /tab >}}
+{{< /tabgroup >}}
+
+Due to differences in the underlying vector index -- IVF-PQ for LanceDB and HNSW for Elasticsearch, we would expect minor differences in the vector search results, as is visible above. However, the results make qualitative sense and can be tuned for either solution by adjusting the hyperparameters of the underlying vector index.
+
+### Throughput
+
+Because the Lance format is optimized for disk-based I/O and random access, we can that LanceDB can handle a much higher throughput than Elasticsearch for vector search. The results of the serial and concurrent benchmarks are shown below.
+
+{{<figure src="lancedb-perf-results.png" caption="QPS for 10,000 randomly sampled FTS and vector search queries">}}
+
+The speedup factor over a single-node Elasticsearch deployment when using LanceDB is shown below.
+
+* FTS (serial): **1.2x**
+* FTS (concurrent): **0.3x**
+* Vector search (serial): **4.5x**
+* Vector search (concurrent): **1.4x**
+
+For vector search, it is clear LanceDB is **much** faster than Elasticsearch in both serial and concurrent scenarios. Elasticsearch uses Lucene's HNSW implementation, which is known to be slower than other Rust-based vector indexes. Additionally, the client/server nature of Elasticsearch can involve an incremental serialization/deserialization overhead per call. It is, of course, possible to improve the throughput of Elasticsearch with more compute resources and a larger cluster, but with some added tuning of the IVF-PQ settings in LanceDB, it should be possible to achieve better vector search performance with far fewer resources on a single node.
+
+The surprising result in FTS is that LanceDB is only about 30% as fast as Elasticsearch in the concurrent FTS scenario. However, the fact that LanceDB is 1.2x faster than Elasticsearch for serial FTS search means that the reduction in performance in the concurrent case is due to the overhead of the multi-threaded REST API calls, and not due to the underlying search engine, Tantivy.
+
+As mentioned before, increasing the number of concurrent worker threads in the FastAPI application for LanceDB did not improve performance, likely because the CPU-bound embedding generation and I/O-bound querying were competing for resources. This is something that can potentially be improved in the future by using an async LanceDB client that might be more efficient with context-switching in a non-blocking fashion.
+
+{{< notice info >}}
+One explanation for the slower performance of LanceDB in the concurrent FTS case is that the current version of LanceDB sits on top of Tantivy's Python client API, `tantivy-py`, and through this layer, there could be blocking operations that hold the GIL. This could potentially be addressed in a future version by directly connecting to the Lance Rust API and performing FTS queries with true multi-threading at the Rust level.
+{{< /notice >}}
+
 
 
 ## The nonlinear impact of foundation systems
@@ -188,4 +358,4 @@ Why is building on top of modular components such a big deal? Each module improv
 
 [^1]: How Apache Arrow Is Changing the Big Data Ecosystem, [thenewstack.io](https://thenewstack.io/how-apache-arrow-is-changing-the-big-data-ecosystem/)
 [^2]: The Road to Composable Data Systems: Thoughts on the Last 15 Years and the Future, [wesmckinney.com](https://wesmckinney.com/blog/looking-back-15-years/)
-[^3]: Please pardon our appearance during renovations, by Chang She, [LanceDB blog](https://blog.lancedb.com/please-pardon-our-appearance-during-renovations-da8c8f49b383)
+[^3]: *Please pardon our appearance during renovations*, by Chang She, [LanceDB blog](https://blog.lancedb.com/please-pardon-our-appearance-during-renovations-da8c8f49b383)
