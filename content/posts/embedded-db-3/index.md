@@ -359,7 +359,7 @@ As described in this post, LanceDB is an exciting addition to the vector databas
 * Hybrid search features that combine the benefits of keyword-based and semantic search
 * Faster vectorization and data loading via async/multi-processing task pipelines
 * Support for upserts and easy updates/deletes for vectors whose representations change over time
-* Direct full-text search on object storage (e.g., S3) via Tantivy
+* Direct full-text search on object storage (e.g., S3) [via Tantivy](https://blog.lancedb.com/s3-backed-full-text-search-with-tantivy-part-1-ac653017068b)
 
 I highly recommend giving out LanceDB a try on your own data, and to keep an eye on its development in the coming months. Give both [Lance](https://github.com/lancedb/lance) and [LanceDB](https://github.com/lancedb/lancedb) a ⭐️ on GitHub and show them some ❤️ on [Discord](https://discord.gg/zMM32dvNtd).
 
