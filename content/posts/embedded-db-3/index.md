@@ -1,5 +1,5 @@
 +++ 
-draft = true
+draft = false
 date = 2023-11-19
 title = "Embedded databases (3): LanceDB and the modular data stack"
 description = "A case study of LanceDB, an embedded vector DB for full-text, SQL and semantic search"
@@ -23,41 +23,41 @@ The aim of this post is to understand the internals of LanceDB, and to showcase 
 
 ### Towards "deconstructed databases"
 
-The term *deconstructed database*[^1] was first coined in 2019 by Julien Le Dem, one of the original designers of the Parquet file format and Arrow specification. These database systems deviate from the well-known vertically-integrated systems that have dominated the DB landscape for decades. Instead, they are built from a collection of modular, reusable components, each of which can be developed and optimized by entirely separate groups of people, typically as open source projects.
+The term *deconstructed database*[^1] was coined in 2019 by Julien Le Dem, one of the original designers of the Parquet file format and Arrow specification. These database systems deviate from the well-known vertically-integrated systems that have dominated the DB landscape for decades. Instead, they are built from a collection of modular, reusable components, each of which can be developed and optimized by entirely separate groups of people, typically as open source projects.
 
-In his blog[^2], Wes points out that today's compute hardware is radically different from what it was in 2013, when Parquet was conceived. In particular, the availability of blazing fast SSDs and NVMe drives have led to a shift in thinking toward designing systems that can store and query specialized data types like vectors and time series at scale.
+In his blog[^2], Wes points out that today's compute hardware is radically different from what it was in 2013, when Parquet was conceived. In particular, the availability of blazing fast SSDs and NVMe drives have led to a shift in thinking toward designing systems that can store and query specialized data types like vectors and time series at scale. This explains the development of Lance, a new data format for the age of AI.
 
 ## The composition of LanceDB
 
-With these ideas in mind, we can attempt to deconstruct LanceDB. On the *surface*, it is a vector database written in Rust, but *underneath*, it's a collection of specialized modular components which are themselves independent components of the Rust 🦀 tooling ecosystem.
+With these ideas in mind, let's deconstruct LanceDB. On the *surface*, it is a vector database written in Rust, but *underneath*, it's a collection of specialized modular components which are themselves independent components of the Rust 🦀 tooling ecosystem.
 
 {{<figure src="lancedb-components.png" caption="The modular components of LanceDB">}}
 
-LanceDB implements its own vector indexes on top of the underlying [Lance](https://lancedb.github.io/lance/) data format, using either an IVF-PQ or an upcoming DiskANN index. Tantivy is an open source full-text search engine that is incorporated to allow keyword-based search via BM25. DataFusion, an embeddable SQL query engine, is used to power the full-text/vector search queries via a SQL interface. The Apache arrow format is used to allow a smooth transition between in-memory and on-disk data storage, and also for smooth interoperability with other data formats like DuckDB, Pandas or Polars. The characteristics of these components is described in more detail below.
+LanceDB implements its own vector indexes on top of the underlying [Lance](https://lancedb.github.io/lance/) data format, using either an IVF-PQ or an upcoming DiskANN index. Tantivy is an open source full-text search engine incorporated to allow keyword-based search via BM25. DataFusion, an embeddable SQL query engine, is used to power the full-text/vector search queries via a SQL interface. The Apache arrow format is used to allow a smooth transition between in-memory and on-disk data storage, and also for seamless interoperability with other data formats from systems like DuckDB, Pandas or Polars.
 
 ### Lance
 
-[Lance](https://github.com/lancedb/lance) is the persistent storage format used in LanceDB. It is optimized for machine learning datasets and workflows, and can be thought of as an alternative to Parquet that's highly optimized for ultra fast scans and random access on vectors. In addition, it supports multi-modal data (images, text, video, audio, point-clouds, etc.) in a zero-copy manner, thanks to its integration with the Arrow ecosystem.
+[Lance](https://github.com/lancedb/lance) is the persistent storage format used in LanceDB. It is optimized for machine learning datasets and workflows, and can be thought of as an alternative to Parquet that's highly optimized for ultra fast scans and random access on vectors. In addition, it has great support for multi-modal data (images, text, video, audio, point-clouds, etc.) in a zero-copy manner, thanks to its integration with the Arrow ecosystem.
 
 ### Arrow
 
-It's impossible to overstate the impact that Apache Arrow[^2] has had on the consolidation of analytical tooling in the industry, due to the way it connects disparate portions of the data stack via a language-agnostic, columnar, in-memory design. The following key features of Arrow[^2] are relevant:
+It's impossible to overstate the impact that Apache Arrow[^2] has had on the consolidation of analytical tooling in the industry, due to the way it connects disparate portions of the data stack via an in-memory, language-agnostic specification. The following key features of Arrow[^2] are relevant:
 
 * Column-oriented in-memory operation optimized for fast analytical processing
 * [Zero-copy](https://en.wikipedia.org/wiki/Zero-copy), chunk-oriented data layer designed for moving and accessing large amounts of data from disparate storage layers
 * Extensible type metadata for describing a wide variety of flat and nested data types occurring in real-world systems, with support for user-defined types
 
-Lance is based on the Rust implementation of Arrow, [`arrow-rs`](https://github.com/apache/arrow-rs), and was itself rewritten from the ground up in Rust in 2023[^3].
+Lance is based on the Rust implementation of Arrow, [`arrow-rs`](https://github.com/apache/arrow-rs), and was itself rewritten from the ground up in Rust in 2023[^3] (having originally been written in C++).
 
 ### DataFusion
 
-[DataFusion](https://github.com/apache/arrow-datafusion) is a fast, extensible embedded query engine that supports a SQL API, and can be used to query data stored in Arrow and Lance. In recent times, it has become the standard for building domain-specific query engines that are decoupled from the storage layer, and because it's written in Rust, performance is excellent despite not being natively integrated with the storage layer. Due to its extensibility, DataFusion has been re-purposed in LanceDB for full-text/vector search via a unified SQL interface.
+[DataFusion](https://github.com/apache/arrow-datafusion) is a fast, extensible,  embeddable query engine that supports a SQL API, and can be used to query data stored in Arrow and Lance. In recent times, it has become the standard for building domain-specific query engines that are decoupled from the storage layer, and because it's written in Rust, performance is excellent despite not being natively integrated with the storage layer. Due to its extensibility, DataFusion has been re-purposed to generate optimized query plans for LanceDB for full-text/vector search via a unified SQL interface.
 
 ### Tantivy
 
-[Tantivy](https://github.com/quickwit-oss/tantivy) a full-text search engine library written in Rust. It's very similar to Apache Lucene (which is written in Java), but Tantivy is faster and more memory efficient. Just like Lucene, Tantivy is not intended to be user-facing, but rather, is used as the basis of a downstream system such as LanceDB. Tantivy uses the BM25 algorithm for scoring documents, and supports boolean queries, phrase queries, fuzzy queries, and range queries. Incorporating Tantivy into LanceDB allows for full-text search queries that run directly on a Lance dataset.
+[Tantivy](https://github.com/quickwit-oss/tantivy) is a full-text search engine library written in Rust. It's very similar to Apache Lucene (which is written in Java), but Tantivy is faster[^4] and more memory efficient. Just like Lucene, Tantivy is not intended to be user-facing, but rather, is used as the basis of a downstream system such as LanceDB. Tantivy uses the BM25 algorithm for scoring documents, and supports boolean queries, phrase queries, fuzzy queries, and range queries. Incorporating Tantivy into LanceDB allows for full-text search queries that run directly on a Lance dataset.
 
-{{<notice info>}}
+{{<notice note>}}
 Based on the components listed above, we can see how LanceDB is a byproduct of multiple modular systems that come together to create a powerful vector database system with in-built data versioning and fast performance, while exposing interfaces for full-text, SQL and semantic search queries.
 {{</notice>}}
 
@@ -80,7 +80,7 @@ As always, any benchmark should be performed on your own data and hardware to ge
 
 ### Dataset
 
-The dataset used is the same one in prior blogs, i.e., a wine reviews dataset from Kaggle. It consists of 129,971 wine reviews from the Wine Enthusiast magazine, made available in newline-delimited JSON as shown below. Refer to the [Kaggle source](https://www.kaggle.com/datasets/zynicide/wine-reviews) for more detailed information on the dataset and how it was scraped.
+The dataset used is the same one I've used in prior blogs, i.e., a wine reviews dataset from Kaggle. It consists of 129,971 wine reviews from the Wine Enthusiast magazine, made available in newline-delimited JSON as shown below. Refer to the [Kaggle source](https://www.kaggle.com/datasets/zynicide/wine-reviews) for more detailed information on the dataset and how it was scraped.
 
 An example JSON line containing a wine review and its metadata is shown below.
 
@@ -199,7 +199,7 @@ def _fts_search(request: Request, terms: str) -> list[SearchResult] | None:
     return search_result
 ```
 
-The vector search is performed the same way, except that we first convert the query to a vector representation using the embedding model, the then specify the number of probes to divide the search space into for the IVF-PQ index. Just like in the FTS case, the result is converted to a Pydantic model and returned via a REST API call.
+The vector search is performed the same way, except that we first convert the query to a vector representation using the embedding model, and then specify the number of probes to divide the search space into, for the IVF-PQ index. Just like in the FTS case, the result is converted to a Pydantic model and returned as JSON via the REST endpoint.
 
 ```python
 def _vector_search(
@@ -277,7 +277,7 @@ Query [+vegetable +fish]: Clean mineral notes blend nicely with fresh berry frui
   {{< /tab >}}
 {{< /tabgroup >}}
 
-As can be seen, the FTS results for LanceDB and Elasticsearch are identical to one another, which is heartening, considering that we had to do **zero** work to set up the search index via  Tantivy. In Elasticsearch, we had to define the index settings via [`mappings.json`](https://github.com/prrao87/lancedb-study/blob/main/elasticsearch/mapping/mapping.json).
+As can be seen, the FTS results for LanceDB and Elasticsearch are identical to one another, which is heartening, considering that we had to do **zero** work to set up the search index via  Tantivy. In Elasticsearch, we had to define the index settings via [`mappings.json`](https://github.com/prrao87/lancedb-study/blob/main/elasticsearch/mapping/mapping.json), which adds a bit of a learning curve and boilerplate.
 
 The vector search results are also inspected the same way. Switch between the tabs below to see the results for either solution.
 
@@ -315,11 +315,11 @@ Query [peppery undertones that pairs with steak or barbecued meat]: An easy red 
   {{< /tab >}}
 {{< /tabgroup >}}
 
-Due to differences in the underlying vector index -- IVF-PQ for LanceDB and HNSW for Elasticsearch, we would expect minor differences in the vector search results, as is visible above. However, the results make qualitative sense and can be tuned for either solution by adjusting the hyperparameters of the underlying vector index.
+Due to differences in the underlying vector index: IVF-PQ for LanceDB and HNSW for Elasticsearch, we would expect minor differences in the vector search results, as is visible above. However, the results make qualitative sense and can be further tuned for either solution (for e.g., to improve recall) by adjusting the hyperparameters of the underlying vector index.
 
 ### Throughput
 
-Because the Lance format is optimized for disk-based I/O and random access, we can that LanceDB can handle a much higher throughput than Elasticsearch for vector search. The results of the serial and concurrent benchmarks are shown below.
+Because the Lance format is optimized for disk-based I/O and random access, we can see that LanceDB is capable of handling a much higher throughput than Elasticsearch for vector search. The results of the serial and concurrent benchmarks are shown below.
 
 {{<figure src="lancedb-perf-results.png" caption="QPS for 10,000 randomly sampled FTS and vector search queries">}}
 
@@ -330,32 +330,45 @@ The speedup factor over a single-node Elasticsearch deployment when using LanceD
 * Vector search (serial): **4.5x**
 * Vector search (concurrent): **1.4x**
 
-For vector search, it is clear LanceDB is **much** faster than Elasticsearch in both serial and concurrent scenarios. Elasticsearch uses Lucene's HNSW implementation, which is known to be slower than other Rust-based vector indexes. Additionally, the client/server nature of Elasticsearch can involve an incremental serialization/deserialization overhead per call. It is, of course, possible to improve the throughput of Elasticsearch with more compute resources and a larger cluster, but with some added tuning of the IVF-PQ settings in LanceDB, it should be possible to achieve better vector search performance with far fewer resources on a single node.
-
-The surprising result in FTS is that LanceDB is only about 30% as fast as Elasticsearch in the concurrent FTS scenario. However, the fact that LanceDB is 1.2x faster than Elasticsearch for serial FTS search means that the reduction in performance in the concurrent case is due to the overhead of the multi-threaded REST API calls, and not due to the underlying search engine, Tantivy.
-
-As mentioned before, increasing the number of concurrent worker threads in the FastAPI application for LanceDB did not improve performance, likely because the CPU-bound embedding generation and I/O-bound querying were competing for resources. This is something that can potentially be improved in the future by using an async LanceDB client that might be more efficient with context-switching in a non-blocking fashion.
+For vector search, it is clear LanceDB is **much** faster than Elasticsearch in both serial and concurrent scenarios. Elasticsearch uses Lucene's HNSW implementation, which has known performance issues[^5] in its segment merging. Additionally, the client/server nature of Elasticsearch can involve an incremental serialization/deserialization overhead as data passes through the network. It is, of course, possible to improve the throughput of Elasticsearch with more compute resources and a larger cluster, but with some added tuning of the IVF-PQ settings in LanceDB, it should be possible to achieve better vector search performance using LanceDB with far fewer resources on a single node.
 
 {{< notice info >}}
-One explanation for the slower performance of LanceDB in the concurrent FTS case is that the current version of LanceDB sits on top of Tantivy's Python client API, `tantivy-py`, and through this layer, there could be blocking operations that hold the GIL. This could potentially be addressed in a future version by directly connecting to the Lance Rust API and performing FTS queries with true multi-threading at the Rust level.
+The surprising result in FTS is that LanceDB is only about 30% as fast as Elasticsearch in the concurrent FTS case, while being faster (by a factor of 1.2x) in the serial case. The reduction in performance in the concurrent case is likely due to the overhead of multi-threaded REST API calls, and not due to the underlying search engine, Tantivy.
+
+An explanation for the less-than-desired multi-threaded performance of LanceDB/FastAPI is that the current version of LanceDB sits on top of Tantivy's Python client API, `tantivy-py`, and through this layer, there could be blocking operations that hold the GIL. This could potentially be addressed in a future version by directly connecting Lance to Tantivy's Rust API and performing FTS queries with true concurrency at the Rust level.
+
+As mentioned before, increasing the number of concurrent worker threads in the FastAPI application not improve performance, likely because the CPU-bound embedding generation and IO-bound query operations were competing for resources. This is something that can potentially be improved in the future by using an async LanceDB client that's more efficient at context-switching in such hybrid CPU-bound + IO-bound scenarios.
 {{< /notice >}}
 
+## Composable systems improve nonlinearly
 
+The key takeaway from this study, at least for me, is how composing multiple modular components leads to a **nonlinear improvement** in the performance of the overall system. That is, improvements at the lower levels of the stack can result in an rapid, outsized improvement in the upper level at which the database sits.
 
-## The nonlinear impact of foundation systems
+As can be seen below, LanceDB is composed of the following key components of the Rust ecosystem (not counting foundation crates like `serde` for serialization/deserialization or `tokio` for async). The effects of each of these projects propagate up the stack to the Lance storage layer, and ultimately, the database itself.
 
-Why is building on top of modular components such a big deal? Each module improves independently of the other, and the impact of each propagates up the stack in a nonlinear fashion.
+{{<figure src="lancedb-deconstructed.png" caption="Composing multiple powerful Rust-based systems in LanceDB">}}
 
+Because `arrow-rs` is a key foundational project that develops rapidly on its own via the thriving open source ecosystem it's part of, it ultimately influences other key projects like Parquet, DataFusion and Lance. Tantivy, which is an independent open source project that specializes in its own domain, will also improve with time as its use becomes more widespread in other search tools. The developers of LanceDB can thus focus on building out their core functionality, which is to provide a powerful vector DB with modern vector indexes and data versioning with scalability and performance in mind, while also leveraging the larger developments in the Arrow-enabled analytical tooling ecosystem.
 
 ## Future developments in the Lance ecosystem
 
+As described in this post, LanceDB is an exciting addition to the vector database landscape because of its refreshingly different internals, and its interesting approach to composability. As of writing this post, there are already numerous developments ongoing in both open source (OSS) LanceDB, as well as its commercial product, LanceDB Cloud. Its adoption will no doubt increase over time as more and more developers discover the ease of use and its lightweight nature. Of all the features on its roadmap, I'm particularly looking forward to the following:
+
+* Async support for all its client APIs
+* Support for disk-based vector indexes (e.g., DiskANN)
+* Hybrid search features that combine the benefits of keyword-based and semantic search
+* Faster vectorization and data loading via async/multi-processing task pipelines
+* Support for upserts and easy updates/deletes for vectors whose representations change over time
+* Direct full-text search on object storage (e.g., S3) via Tantivy
+
+I highly recommend giving out LanceDB a try on your own data, and to keep an eye on its development in the coming months. Give both [Lance](https://github.com/lancedb/lance) and [LanceDB](https://github.com/lancedb/lancedb) a ⭐️ on GitHub and showing them some ❤️ on [Discord](https://discord.gg/zMM32dvNtd).
 
 ## Code
 
-### Additional resources
-
-
+All the code required to reproduce the results from the benchmark is available [here](https://github.com/prrao87/lancedb-study).
 
 [^1]: How Apache Arrow Is Changing the Big Data Ecosystem, [thenewstack.io](https://thenewstack.io/how-apache-arrow-is-changing-the-big-data-ecosystem/)
 [^2]: The Road to Composable Data Systems: Thoughts on the Last 15 Years and the Future, [wesmckinney.com](https://wesmckinney.com/blog/looking-back-15-years/)
 [^3]: *Please pardon our appearance during renovations*, by Chang She, [LanceDB blog](https://blog.lancedb.com/please-pardon-our-appearance-during-renovations-da8c8f49b383)
+[^4]: *Search benchmark, the game*, [Tantivy blog](https://tantivy-search.github.io/bench/)
+[^5]: Make HNSW merges faster, [Lucene GitHub](https://github.com/apache/lucene/issues/12440)
