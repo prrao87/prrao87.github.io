@@ -1,6 +1,6 @@
 +++ 
 draft = false
-date = 2023-11-19
+date = 2023-11-20
 title = "Embedded databases (3): LanceDB and the modular data stack"
 description = "A case study of LanceDB, an embedded vector DB for full-text, SQL and semantic search"
 tags = ["embedded-db", "vector-db", "rust"]
@@ -361,7 +361,7 @@ As described in this post, LanceDB is an exciting addition to the vector databas
 * Support for upserts and easy updates/deletes for vectors whose representations change over time
 * Direct full-text search on object storage (e.g., S3) via Tantivy
 
-I highly recommend giving out LanceDB a try on your own data, and to keep an eye on its development in the coming months. Give both [Lance](https://github.com/lancedb/lance) and [LanceDB](https://github.com/lancedb/lancedb) a ⭐️ on GitHub and showing them some ❤️ on [Discord](https://discord.gg/zMM32dvNtd).
+I highly recommend giving out LanceDB a try on your own data, and to keep an eye on its development in the coming months. Give both [Lance](https://github.com/lancedb/lance) and [LanceDB](https://github.com/lancedb/lancedb) a ⭐️ on GitHub and show them some ❤️ on [Discord](https://discord.gg/zMM32dvNtd).
 
 ## Code
 
