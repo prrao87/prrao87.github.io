@@ -8,7 +8,7 @@ categories: ["general"]
 
 # Welcome to my blog!
 
-Hi there! 👋🏽 I'm a data scientist and software engineer with a passion for building intelligent, automated applications using a combination of machine learning, NLP and a variety of databases and software frameworks. I'm currently based in Toronto 🇨🇦 and have previously lived in Vancouver (British Columbia), London (U.K.) and Ann Arbor (Michigan). You can always catch me nerding out on some cool recent tech, programming language or framework (heaven knows, we have enough to keep track of in the tech world these days 🚀), so feel free to reach out on my socials if you're in Toronto and wanna chat 😄.
+Hi there! 👋🏽 I'm an A.I. engineer with a passion for building intelligent, automated applications using a range of databases and software frameworks. I'm currently based in Toronto 🇨🇦 and have previously lived in Vancouver (British Columbia), London (U.K.) and Ann Arbor (Michigan). You can always catch me nerding out on some cool new tool, programming language or framework (heaven knows, we have enough to keep track of in the tech world these days 🚀), so feel free to reach out on my socials if you're in Toronto and wanna chat 😄.
 
 ## What will I focus on in this blog?
 
@@ -24,15 +24,13 @@ We all lead busy professional and personal lives, and it can be challenging to s
 
 ### 2. End-to-end data pipelines and best practices
 
-I regularly build data wrangling and analysis pipelines, and as a result, I come across a variety of really cool open source tools & tech stacks that are blazing forward alongside the rapid progress currently happening in the world of ML. My goal is to utilize this space to synergize my learnings through conversations with work colleagues, the general industry, and the amazing open source community out there. Geography and borders have no meaning when it comes to open source! 🌎
-
+I regularly build data wrangling and analysis pipelines, and as a result, I come across a variety of really cool open source tools & technologies that are trailblazing a path ahead in the tech ecosystem. Not all of them are nearly well-known enough, in my opinion. My goal is to utilize this space to synergize my thoughts and learnings via conversations with industry colleagues and the amazing open source community out there. Geography and borders have no meaning when it comes to open source! 🌎
 
 ### 3. Can we get more people excited about Rust 🦀, already?
 
-I've recently gained a huge fascination with the Rust ecosystem, specifically tools that utilize [PyO3](https://github.com/PyO3/pyo3) to expose the underlying power and speed of Rust to Python developers. This space is just exploding recently! As described in [their GitHub repo](https://github.com/PyO3/pyo3#tools-and-libraries), there are ever more Python frameworks that are being built on top of Rust these days, all enabled by the ease of building Python extensions on top of blazing fast 🚀 bindings written in Rust.
+I've recently gained a huge fascination with the Rust ecosystem, specifically tools that utilize [PyO3](https://github.com/PyO3/pyo3) to expose the underlying power and speed of Rust to Python developers. This space is really exciting and is changing the way Python tooling is built! As the maintainers of PyO3 [describe](https://github.com/PyO3/pyo3#tools-and-libraries), there are ever more Python frameworks being built on top of Rust these days, all enabled by how easy it's become to build Python tooling on top of blazing fast 🚀 Rust bindings.
 
-There are almost too many things going on in parallel to talk about, but because I'm mostly focused on data engineering and backend tasks, I'll focus on writing about the following tools built on top of Rust in the coming months:
-
+There are almost too many things going on in parallel in this space, but because I'm mostly focused on A.I., data engineering and backend tasks, I'll list just some of the many Rust projects that I'm excited about.
 
 #### Databases
 
@@ -49,11 +47,11 @@ There are almost too many things going on in parallel to talk about, but because
 
 Vector databases and graph databases are both raging in the NoSQL world these days, but in different ways, as they both shine in different areas. However, are the use cases for either kind of database truly orthogonal? I'll be exploring this in more detail by querying specific datasets in multiple ways: vector-based similarity search as well as graph-based structural search, to retrieve interesting insights and information. Some of these topics are listed below.
 
-* [FastAPI](https://fastapi.tiangolo.com/): Building both RESTful and GraphQL APIs in FastAPI (via [Strawberry](https://strawberry.rocks/))
+* [FastAPI](https://fastapi.tiangolo.com/): Building RESTful and GraphQL APIs in FastAPI (via [Strawberry](https://strawberry.rocks/))
   * It would be cool to see how the same questions can be answered via two different sets of endpoints (REST and GraphQL), especially on graph and vector databases!
 * [Weaviate](https://weaviate.io/): One of the most popular and talked-about vector databases out there, written in [Go](https://go.dev/)
   * Comparing its API with that of Rust-based Qdrant (mentioned above) would be very interesting!
-* NLP, transformers, vectorization, performance optimization on CPUs, and much more...
+* NLP, vectorization, performance optimization on CPUs, and much more...
 
 
 ## And that's that...
