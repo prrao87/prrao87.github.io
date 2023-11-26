@@ -1,7 +1,7 @@
 +++ 
 draft = false
 date = 2023-09-09
-title = "Embedded databases (2): Deep diving into KùzuDB, a lightweight, fast & scalable graph database"
+title = "Embedded databases (2): KùzuDB, an extremely fast OLAP graph database"
 description = "A benchmark study comparing the performance of KùzuDB vs. Neo4j on an artificial social network dataset"
 tags = ["embedded-db", "graph-db"]
 categories = ["databases"]
