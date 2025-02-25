@@ -1,7 +1,7 @@
 ---
 title: "I've moved this blog to Astro, and I like it here"
 description: "The story behind me migrating this blog site from Zola to Astro"
-publishDate: 2025-02-24
+publishDate: 2025-02-26
 draft: true
 tags:
   - astro
@@ -16,132 +16,143 @@ import Img2 from './sonnet-2.png';
 Welcome back to the blog, and hope you like its new skin! I spent most of my spare time over the last
 week migrating my blog from [Zola](https://www.getzola.org/) to [Astro](https://astro.build/). If you recall, the
 earlier version of this blog was built with Zola, a static site generator (SSG) written in Rust. I've been very happy
-with Zola over the last year, and even today there's absolutely nothing wrong with it.
+with Zola over the last year, and even today I'd saythere's absolutely nothing wrong with it.
 
-The purpose of this post is to explain my thoughts on why I wanted to rewrite this site in [Astro](https://astro.build/),
+The purpose of this post is to explain my thoughts on why I rewrote this site in [Astro](https://astro.build/),
 a JavaScript-based web framework for content-driven websites. Yes, JavaScript. I used to be very anti-JS in most of my personal projects
-because I'd heard it slowed down websites, and I had a very limited knowledge of the frontend ecosystem in general.
+because I'd heard it slowed down websites, and in my defence I had a very limited knowledge of the frontend ecosystem in general.
 As an AI and machine learning person by training, my world has mostly been in Python (and recently, some Rust).
 
 So why Astro, specifically? For the last one year, I've been working at [Kùzu Inc.](https://kuzudb.com) as an AI engineer, and
 I've successfully migrated both the [documentation](https://docs.kuzudb.com/) and the
-[blog](https://blog.kuzudb.com/) sites of Kuzu to Astro. I'd only heard good things about Astro from
-fellow developers, and my experience in rewriting Kuzu's docs and blog in Astro was a great experience.
-So I began thinking of making the switch for this site as well.
-
-Migrations are always a fair amount of work, and there are always starting pains when learning
-something new, though they were greatly alleviated by working with Claude 3.5 Sonnet and Cursor to
-translate my past blogs to Astro's MDX format. I'll highlight some of these aspects in the rest of this post.
+[blog](https://blog.kuzudb.com/) sites of Kuzu to Astro. The performance of the sites, as well as the ease
+of adding custom features made me think of making the switch for this site as well.
 
 ## Why Astro?
 
+After nearly a year of using Zola, I was finding that I was needing a lot of manual
+effort to add some aesthetics and make my site look better. For example, the way past blog posts were
+rendered in my archive was by category, and I wanted to change it to be by year and date instead.
+I was finding myself having to write a _lot_ of additional
+code to move things around, and even when I did, the aesthetics were lacking compared to other sites I'd seen.
+
 Like it or not, JavaScript (and more recently, TypeScript) are designed from the ground up for the web.
 Naturally, the ecosystem around them is _huge_. For almost any requirement,
-there's likely a JS/TS framework and package out there that can help you. After nearly a year of using Zola
-(and leveraging the far smaller Rust web dev ecosystem), I was finding that I was needing a lot of manual
-effort to add some aesthetics and make my site look better.
+there's likely a JS/TS framework and package out there that can help you. There are _so many_ existing
+templates and themes to leverage without having to start from scratch.
 
-After some scanning the web for some sites that were built using Astro, some of them are objectively
-_beautiful_[^1]. Not that sites built in Zola are ugly -- given enough time and effort, I could have
-definitely redesigned the Zola version of the blog to look more aesthetically pleasing.
+Upon scanning the web for other sites that were built using Astro, I found some of them to be feature-rich and
+_beautiful_[^1]. Not that sites built in Zola are ugly by nature -- given enough time and effort (and a ton of CSS skills),
+I could have definitely redesigned the Zola version of the blog to look more aesthetically pleasing.
+But honestly, who has that kind of time?
 
-Where Astro came in is due to the following features:
+Astro provided a great starting point for these reasons:
 
 - Ability to leverage the vast frontend ecosystem and community already building great sites using JS, TS, JSX and Tailwind CSS.
 - Huge number of existing & aesthetically pleasing [themes](https://astro.build/themes/) for blog sites
 - Component-driven, allowing me to add/remove UI components easily and intuitively
-- Easy to leverage LLMs like Claude 3.5 Sonnet[^2] and modern IDEs that can help modify the codebase without
+- Easy to leverage LLMs like Claude 3.5/3.7 Sonnet[^2] and modern IDEs that can help modify the codebase without
 the typical frustrations of switching to something totally unfamiliar
+
+Plus, I'd already had prior experience with Astro as part of my job duties at Kuzu, so I was already
+familiar enough with the basics of how customization works in Astro.
 
 ## Performance considerations
 
-My initial (uninformed) concern was that my Astro site would be slower than Zola because of the overhead of JavaScript.
-However, my ongoing experience managing Kuzu's sites at my day job told me otherwise -- I found
-that most Astro sites I visited were fast and snappy to load. So I did some more reading to learn more about the
+My initial (uninformed) opinion was that my Astro site would be slower than the Zola version because of
+the overhead of JavaScript.
+However, my ongoing experience managing Kuzu's sites at my day job told me otherwise -- Kuzu's, as well as
+most other Astro sites I visited were fast and snappy to load. So I did some more reading to learn more about the
 internals of Astro.
 
 Astro is well-known for introducing the [islands architecture](https://docs.astro.build/en/concepts/islands/),
 which is a way to optimize the performance of the website by rendering a majority of the page via fast,
 static HTML, and only using "islands" of JavaScript when interactivity or personalization is needed.
 This is _perfect_ for the purposes of a blog site, where most of the content is static, and you may
-only occasionally need to add dynamic embeds like YouTube videos or Twitter threads.
+only occasionally need to add dynamic embeds like YouTube videos or X threads.
 
 ## Moving on from Zola
 
-When I first discovered Rust in 2023, I was sold on the idea of using it wherever I could, leading to me
-building the previous version of this site with [Zola](/blog/why-zola-matters). With my rudimentary knowledge of
+I built the previous version of this site with [Zola](/blog/why-zola-matters) in late 2023 because I'd
+begun my Rust learning journey earlier that year. With my rudimentary knowledge of
 Rust and Zola's templating language, Tera, I was able to customize the [Serene theme](https://github.com/isunjn/serene)
 to my liking.
 
-However, after my experience with Astro as part of my job duties at Kuzu, I'm glad I made the switch. The ability
-to use Tailwind CSS and JSX to build the site, made it easier for me to get a better looking site and
-add custom components. My experience with Zola was undoubtedly positive, and I'd largely attribute my
-inability to customize my Zola theme to skill issues on my part, and not Zola's fault. That being said,
-I was still looking for a tool that had a larger user community I could leverage to get a better looking site
-without having to burn the midnight oil.
+However, after my experience with Astro as part of my job duties at Kuzu, I began finding easier and more aesthetic
+ways to do things. The ability to use Tailwind CSS and JSX to build the site, made it easier for me to get a far better looking site
+while also adding custom components to enhance my use case.
+
+My experience with Zola was undoubtedly positive, and I'd largely attribute my
+inability to customize my Zola theme to skill issues on my part, and not Zola's fault.
+I was simply looking for a tool that had a larger developer community whose prior efforts I could
+leverage to get a better looking site without me having to burn the midnight oil.
 
 ## Choosing a theme
 
-The first step in building a static blog site is choosing an appropriate theme. An ideal theme
-contains 90% or more of the features I'd need out of the box, allowing me to customize the remaining 10%
+As always the first step in building a static blog site is choosing an appropriate theme. An ideal theme
+would contain 90% or more of the features I'd need out of the box, allowing me to customize the remaining 10%
 to make the site look the way I want. I found the _perfect_ theme for my needs in
 [Astro Pure](https://github.com/cworld1/astro-theme-pure). It had all the pre-built UI components and formatting
-features I needed, so I didn't have to spend time building them on my own in Astro.
+features I was looking for, so I didn't have to spend time building them on my own in Astro.
 
 I started by creating a new repo using the Pure theme repo as a template, and began customizing it from there.
-My blog writing style typically involves me explaining my thought process on a topic, with specific examples in which
-I use a variety of means to illustrate my points.
+I defined my requirements based on my blog writing style, which typically involves me explaining my
+thought process on a topic and using a variety of means to illustrate my points.
 
 These are all the components I needed out of the box, provided by the Pure theme:
-- Callouts (also known as asides)
-- Timelines
 - Code blocks with custom line highlighting
+- Callouts (also known as asides)
 - Footnotes
 - KaTeX for math equations
 - Non-intrusive sidebar with table of contents
 - Inbuilt search box to easily locate past posts
+- Timelines
 - And more!
 
-With all these raw components in place, I was immediately able to translate my past blogs written in Zola's
-templating syntax embedded in Markdown to Astro's MDX format.
+With all these raw components already available in the Pure theme, I was immediately able to translate
+my past blogs written in Zola's templating syntax embedded in Markdown to Astro's MDX format.
 
 ## The marvel of developing with LLMs in Cursor
 
 While customizing the theme, my lack of knowledge of TypeScript would normally have been a huge
-roadblock. For example, I wanted to disable the comments system (who needs comments on a blog site? Reach
-out to me via [X](https://x.com/tech_optimist) instead!). I also wanted to add a LinkedIn profile in the home page.
+roadblock. For example, I wanted to disable the comments system (who needs comments on a blog site? I prefer
+being reached out to on [X](https://x.com/tech_optimist) anyway). I also wanted to add custom buttons
+and a LinkedIn profile on my home page, which weren't in the theme out of the box.
 
-This involved modifying tons of custom TypeScript files, and I'm super glad I had [Cursor](https://www.cursor.com/)
-and its faithful sidekick, Claude 3.5 Sonnet, to help me out.
+This involved modifying a ton of Astro and TypeScript files, and I'm super glad I had [Cursor](https://www.cursor.com/)
+and its faithful sidekicks, Claude 3.5/3.7 Sonnet, to help me out.
 
 To demonstrate how useful they were, I came across a strange issue where the theme's datetime calculation
 was off by a day. When I entered the post's published date in the post's frontmatter as `2023-04-29`, the
 theme was rendering it as `April 28, 2023`, which was a day off. I was initially scratching my head as to the source of the problem,
-but it took me all of two minutes to get two potential solutions from Claude 3.5 Sonnet via Cursor.
+but it took me all of two minutes to get two potential solutions from Claude 3.7 Sonnet via Cursor.
 
 Not knowing a thing about how timezones and datetimes worked in TypeScript, this is the initial question
-I asked in Cursor chat to put Claude 3.5 Sonnet to work:
+I asked in Cursor chat to put Claude 3.7 Sonnet to work:
 
-<Image src={Img1} alt="Explaining to Claude 3.5 Sonnet about the datetime issue in the Astro theme" />
+<Image src={Img1} alt="Explaining to Claude 3.7 Sonnet about the datetime issue in the Astro theme" />
 
 The model's response was nuanced, giving me two different ways to fix the issue. I ended up going with the second
 approach that sets the default timezone to UTC, because I'd like to preserve the exact date of the blog post's publication.
 
-<Image src={Img2} alt="Claude 3.5 Sonnet suggesting a solution in Cursor's chat interface" />
+<Image src={Img2} alt="Claude 3.7 Sonnet suggesting a solution in Cursor's chat interface" />
 
-All in all, I continued addressing my own feature requests, needs and wants this way, and it took me all of 2-3
-days of work (among other things) to get the site up and running. Not bad at all!
+All in all, I continued addressing my own feature requests, needs and wants this way, and it took me all of 1-2
+days of work (among other things) to get the site up and running. Not bad at all! After this, it was
+just a matter of migrating the past blog content itself, which was a breeze once I knew how the Astro
+components worked.
 
 ## Timeline components and more
 
-In Astro, blogs are typically written in MDX files, which is a markdown-like syntax that allows you to
-incorporate JSX code for custom UI components. This is _extremely_ useful for static blog sites when
-you want to illustrate your points with timelines, callouts, code blocks and more.
+In Astro, blogs are typically written in `.mdx` files. MDX is a markdown-like syntax that allows you to
+incorporate JSX code for custom UI components. This is _extremely_ useful for static blog sites like this one,
+where I like to illustrate my points with timelines, callouts, code blocks and more.
 
-Say I want to describe a timeline of events, such as the history of this blog, I can use the `Timeline`
-component that's built into the Pure theme. In Astro, it would be a simple import statement followed by
-the component definition, as shown below. Note that this would have been a lot harder for me in Zola,
-where I'd have had to write my own custom component and mess around with styles to get it to look this good.
+Say I want to describe a timeline of key milestones in the history of this blog, I can use the `Timeline`
+component that's built into the Pure theme. Once it's defined in Astro, it's just a matter of importing it
+in my MDX file followed by the component definition, as shown below. Note that this would have been a lot harder for me in Zola,
+where I'd have had to write my own custom component from scratch (because I couldn't find one that fit my needs)
+and then mess around with styles to get it to look this good.
 
 ```tsx
 import { Timeline } from 'astro-pure/user';
@@ -210,27 +221,31 @@ Here's how this would look per this theme:
 </Aside>
 
 Overall, I found the aesthetics of the Pure theme to already be very pleasing to the eye to begin with, so I didn't
-spend any time customizing the CSS. However, there were plenty of structural changes I did end up making, and
-the transition to Astro was really smooth.
+spend any time customizing the CSS. Most of my changes were structural, and the transition to Astro went really smoothly.
 
-Thanks to the widespread usage of Astro in so many amazing sites out there, it has a large user community
+Thanks to the widespread usage of Astro in so many amazing sites already out there, it has a large user community
 and there are custom components for all sorts of things. I'm sure I'll be able to add even more custom components in the
 future as needed, without too much effort.
 
 ## Conclusions
 
-It's been a 4+ year journey since I first started writing static blogs in Markdown, and I've migrated from Jekyll (where I started)
+
+
+What began as a personal journey of writing down my learnings eventually led to this blog finding enthusiastic
+readers from all over the 🌎 planet! It's been a multi-year journey since I began writing static blogs in
+Markdown, in which I've migrated from Jekyll (where I started)
 to Hugo, to Zola and now Astro. For me, static sites and self-hosting are always the way to go, because I love the flexibility
-they offer in customizing the look and feel of my site. I've also always loved supporting and talking about open source projects,
-and Astro is truly among the best out there. It's very widely adopted,
+they offer in customizing the look and feel of my site.
+
+With my readership having grown over the years, naturally, I wanted to give the site the best look possible while also making
+it easier to maintain the site for the longer term. For my writing style, a "minimalist" theme devoid
+of any JavaScript would take away from the reading experience. My main goals of writing, as expressed in my
+[hello world](/blog/hello-world) post, were to share my learnings, put my work and ideas out there, and
+shine a spotlight on open source projects that I like using.
+
+This ties in very well with my using Astro, an MIT licensed open source project to build this site. Astro is very widely adopted,
 has a large and enthusiastic user base, and it's really easy to get started with building your own static site using an
 existing theme as a baseline. Once you begin, the world's your oyster!
-
-Through my writing in this blog, I've been exposed to so many amazing people from all over the world, so I naturally
-want to give the site the best look possible while also making it easier to maintain the site for the longer term. My writing style
-involves multiple ways to illustrate my points, so a "minimalist" theme that doesn't use any JavaScript would make
-this more challenging. This is what led me to explore the JavaScript ecosystem,
-and ultimately, the Astro framework to upskill myself.
 
 I'm no longer worried about the performance impact of including JavaScript in my site, because of the islands architecture
 that's integral to Astro. The static site that's served is not monolithic, so any JavaScript payloads are
@@ -239,15 +254,15 @@ Astro and other JavaScript web frameworks you can find online that validate this
 
 I'll still continue supporting the Rust 🦀 ecosystem in other ways by using so many other tools built in Rust, and I
 wish the maintainers of Zola well -- in my opinion, it's still one of the best SSGs written in Rust out there.
-But for the foreseeable future, I'm very happy using Astro for this site, and I hope you can also give it a try
-for your next static site!
+But for the foreseeable future, I'm very happy continuing to build and maintain this site in Astro.
+I hope you can also give it a try for your next static site!
 
 ---
 
 [^1]: See Sentry.io's Python SDK [docs](https://docs.sentry.io/platforms/python/) for an example of a beautiful site built with Astro.
-[^2]: Anecdotally speaking, I've found that LLMs tend to write better TypeScript code than they do Rust code. In this blog's case,
-Zola, which uses the Tera templating language, is even more niche because it uses Jinja-like templating alongside
-Rust code. In contrast, Astro uses TypeScript, JSX, and Tailwind CSS, which are all new to me, but LLMs seem to do well with them.
+[^2]: Anecdotally speaking, I've found that current LLMs tend to write better TypeScript code than they do Rust code. In this blog's case,
+Zola, which uses Tera (a Jinja-like templating language) alongside Rust code, makes it even more niche for LLMs to help out.
+In contrast, Astro uses TypeScript, JSX, and Tailwind CSS, which may be new to me, but modern LLMs seem to do well with them.
 [^3]: This excellent comparison by [CloudCannon](https://cloudcannon.com/blog/astro-vs-next-js/) shows that Astro sites are generally faster than Next.js sites,
 although with some nuances. Next.js is a more feature-rich framework than Astro, and Astro is easier to get started with than Next.js, is fast, and a perfect fit
 for simple blog sites like this one.
